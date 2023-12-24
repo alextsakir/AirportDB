@@ -5,18 +5,18 @@ Container, subclass of types.SimpleNamespace
 
 abstract class DatabaseRecord
 
-classes: Coordinates, Rectangle, Employee(DatabaseRecord), Airport(DatabaseRecord),
-Schedule(DatabaseRecord), Flight(DatabaseRecord)
+classes: Coordinates, Rectangle, Airline(DatabaseRecord), Employee(DatabaseRecord),
+Airport(DatabaseRecord), Schedule(DatabaseRecord), Flight(DatabaseRecord), Gate
 
 **NOTE: Python 3.11 required for typing.Self (PEP673), the pipe operator '|' (PEP604)
 and the match-case statement (PEP634 ~ PEP636)**
 """
 
 __all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day", "Container",
-                       "DatabaseRecord", "Coordinate", "Coordinates", "Rectangle", "Employee",
-                       "Airport", "Schedule", "Flight", "Gate")
+                       "DatabaseRecord", "Coordinate", "Coordinates", "Rectangle", "Airline",
+                       "Employee", "Airport", "Schedule", "Flight", "Gate")
 __author__ = "A. Tsakiridis"
-__version__ = "1.0"
+__version__ = "1.3"
 
 import random
 from abc import abstractmethod, ABC
@@ -173,7 +173,7 @@ class DatabaseRecord(ABC):
     def headers() -> str:
         ...
 
-    class Dict:  # todo abstract method
+    class Dict:  # ----------------------------------------------------------------------------------------- DEPRECATED
         ...
 
     @property
@@ -189,23 +189,23 @@ class Coordinate:
 
     __slots__: tuple[str] = "value", "type", "label"
 
-    @overload  # ---------------------------------------- Coordinate(-23.12) [insufficient] or Coordinate("23.12S")
+    @overload  # -------------------------------------------- Coordinate(-23.12) [insufficient] or Coordinate("23.12S")
     def __init__(self, value: Union[str, float, int] = None) -> NoReturn:
         ...
 
-    @overload  # ----------------------------------------------------------------- Coordinate(23.12, Quarter.SOUTH)
+    @overload  # --------------------------------------------------------------------- Coordinate(23.12, Quarter.SOUTH)
     def __init__(self, value: Union[float, int] = None, quarter: Quarter = None) -> NoReturn:
         ...
 
-    @overload  # ------------------------------------------------- Coordinate(-23.12, "CoordinateType.LATITUDINAL")
+    @overload  # ----------------------------------------------------- Coordinate(-23.12, "CoordinateType.LATITUDINAL")
     def __init__(self, value: Union[float, int] = None, coord_type: CoordinateType = None) -> NoReturn:
         ...
 
-    @overload  # ---------- Coordinate(-23.12, "coord-label") [insufficient] or Coordinate("23.12S", "coord-label")
+    @overload  # -------------- Coordinate(-23.12, "coord-label") [insufficient] or Coordinate("23.12S", "coord-label")
     def __init__(self, value: Union[str, float] = None, label: str = None) -> NoReturn:
         ...
 
-    @overload  # -------------------------------------------------- Coordinate(23.12, Quarter.NORTH, "coord-label")
+    @overload  # ------------------------------------------------------ Coordinate(23.12, Quarter.NORTH, "coord-label")
     def __init__(self, value: Union[float, int] = None, quarter: Quarter = None, label: str = None) -> NoReturn:
         ...
 
@@ -515,7 +515,7 @@ class Coordinates:
     @staticmethod
     def earth_radius(latitude: float) -> float:
         """
-        Returns floating point earth radius at the specified latitude, a value between 3656.8 and 6378.1 kilometers.
+        Returns floating point earth radius at the specified latitude, a value between 6356.8 and 6378.1 kilometers.
 
         *Created on 6 Nov 2023.*
         """
@@ -670,6 +670,25 @@ class Rectangle:
         return False
 
 
+class Airline(DatabaseRecord):
+
+    __slots__: tuple[str] = "id", "name", "designator"
+
+    def __init__(self, airline_id: int, name: str, designator: str) -> NoReturn:
+        super().__init__()
+        self.id: int = airline_id
+        self.name: str = name
+        self.designator: str = designator
+        pass
+
+    def __str__(self) -> str:
+        return self.name
+
+    @staticmethod
+    def headers() -> str:
+        pass
+
+
 class Employee(DatabaseRecord):
 
     class Composite(ABC):
@@ -753,16 +772,19 @@ class Employee(DatabaseRecord):
         """Alternative factory method, creates and returns random Employee object."""
         return cls(*cls.random_tuple())
 
-    def __init__(self, ssn: int = None, first: str = None, middle: str = None, last: str = None,
-                 telephone: str = None, email: str = None,
-                 street: str = None, number: int = None, town: str = None, postal_code: int = None,
-                 birth_date: Union[str, date] = None, dept_id: int = None, sex: int = None) -> NoReturn:
+    def __init__(self, ssn: Optional[int] = None,
+                 first: Optional[str] = None, middle: Optional[str] = None, last: Optional[str] = None,
+                 telephone: Optional[str] = None, email: Optional[str] = None,
+                 street: Optional[str] = None, number: Optional[int] = None,
+                 town: Optional[str] = None, postal_code: Optional[int] = None,
+                 birth_date: Union[str, date, None] = None, dept_id: Optional[int] = None,
+                 sex: Optional[int] = None) -> NoReturn:
         """*Created on 7 Nov 2023.*"""
         self.ssn: int = ssn
         self.name: Employee.Name = Employee.Name(first, middle, last)
         self.contact: Employee.Contact = Employee.Contact(telephone, email)
         self.address: Employee.Address = Employee.Address(street, number, town, postal_code)
-        # _format: str = DatetimeFormat.DATE.value if len(birth_date) == 10 else DatetimeFormat.DATETIME.value  #  note
+        # _format: str = DatetimeFormat.DATE.value if len(birth_date) == 10 else DatetimeFormat.DATETIME.value  #  NOTE
         _format: str = DatetimeFormat.DATE.value
         self.birth_date: date = birth_date if isinstance(birth_date, date) else datetime.strptime(birth_date, _format)
         self.dept_id: int = dept_id
@@ -988,14 +1010,17 @@ class Airport(DatabaseRecord):
         raise NotImplementedError
 
 
-class Schedule:  # fixme inherit from DatabaseRecord
+class Schedule(DatabaseRecord):
 
-    MONTH: ClassVar[tuple[int, int]] = 2024, 1
+    MONTH: ClassVar[tuple[int, int]] = 2024, 2
 
     __slots__: tuple[str] = "code", "from_airport", "to_airport", "departure", "arrival", "_days"
 
-    def __init__(self, code: str, from_airport: int, to_airport: int,
-                 departure: Union[datetime, str], arrival: Union[datetime, str], days: int):
+    def __init__(self, code: Optional[str] = None,
+                 from_airport: Optional[int] = None, to_airport: Optional[int] = None,
+                 departure: Optional[Union[datetime, str]] = None,
+                 arrival: Optional[Union[datetime, str]] = None,
+                 days: Optional[int] = None):
         self.code: str = code
         self.from_airport: int = from_airport
         self.to_airport: int = to_airport

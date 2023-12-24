@@ -17,8 +17,8 @@ class Database:
 
     _DEBUG: ClassVar[bool] = False
     _EXISTS: ClassVar[bool] = False
-    _SCHEDULE_START: _datetime.date = _datetime.date(2024, 2, 1)
-    _SCHEDULE_END: _datetime.date = _datetime.date(2024, 4, 30)
+    _SCHEDULE_START: ClassVar[_datetime.date] = _datetime.date(2024, 2, 1)
+    _SCHEDULE_END: ClassVar[_datetime.date] = _datetime.date(2024, 4, 30)
 
     def __new__(cls, *args, **kwargs) -> Optional["Database"]:
         if cls._EXISTS:  # NOTE ------------------------------- prevents the creation of more than one Database objects
@@ -26,7 +26,7 @@ class Database:
         cls._EXISTS = True
         return super().__new__(cls)
 
-    def __init__(self, path: str, name: str = "AIRPORT", debug: bool = False) -> NoReturn:
+    def __init__(self, path: str, name: Optional[str] = "AIRPORT", debug: Optional[bool] = False) -> NoReturn:
         """
         Pass debug=True to have debugging information printed
         """
@@ -90,15 +90,18 @@ class Database:
 
     def generate_scheduled_flights(self, flight_code: str) -> str:
         _report: list[str] = list()
-        _s = Schedule(*self.cursor.execute("select * from Schedule where code = ?", (flight_code,)).fetchone())
-        # print(_s)
+        _s = Schedule.db(self.cursor.execute("select * from Schedule where code = ?", (flight_code,)).fetchone())
+        if self._DEBUG:
+            print("SCHEDULED FLIGHT:", _s)
         _airline = self.airline(_s.code[:2])
         _airplanes = self.cursor.execute(f"select * from Airplane where airline = {_airline[0]}").fetchall()
 
+
         for date in self._dates:
-            current_day: Day = Day.day(date)  # NOTE ------------ create Flight only for the days specified in Schedule
+            current_day: Day = Day.day(date)  # NOTE ------- create Flight only for the days specified in Schedule.days
             if current_day in _s.days:
-                print(date, current_day, current_day in _s.days)
+                if self._DEBUG:
+                    print(date, current_day, current_day in _s.days)
                 data: list = [_s.code, _s.from_airport, _s.to_airport]
                 if _s.departure is not None:
                     time = _s.departure.hour, _s.departure.minute
@@ -110,18 +113,21 @@ class Database:
                     data.append(_datetime.datetime(date.year, date.month, date.day, *time))
                 else:
                     data.append(None)
-                data.extend([None, random.randint(1, 40)])   # NOTE ----------------- state column will be filled later
+                data.extend([None, random.randint(1, 40)])  # NOTE ------------------ state column will be filled later
                 _gate = Gate.random()
                 data.extend([_gate.number, _gate.terminal, choice(_airplanes)[0]])
 
-                print(data)
+                if self._DEBUG:
+                    print(data)
 
-                self.cursor.execute(f"insert into Flight (code, from_airport, to_airport, departure, arrival, state, check_in,"
-                                    f"gate_n, gate_t, airplane) values ('{data[0]}', '{data[1]}', '{data[2]}',"
-                                    f"'{data[3]}', '{data[4]}', '{data[5]}', '{data[6]}', '{data[7]}', '{data[8]}',"
-                                    f"'{data[9]}')")  # FIXME an einai dynaton tetoio syntax
+                query = (f"insert into Flight (code, from_airport, to_airport, departure, arrival, state,"
+                         f" check_in, gate_n, gate_t, airplane) values ('{data[0]}', '{data[1]}',"
+                         f"'{data[2]}', '{data[3]}', '{data[4]}', '{data[5]}', '{data[6]}', '{data[7]}',"
+                         f"'{data[8]}', '{data[9]}')")  # FIXME an einai dynaton tetoio syntax
 
-        _report.append(str(Flight))
+                # self.cursor.execute(query)
+
+            # _report.append(str(Flight))
 
         return "\n".join(_elem for _elem in _report)
 
@@ -152,11 +158,12 @@ class Database:
         return "\n".join(element for element in _out)
 
 
+database: Optional[Database] = None
+
 try:
-    database: Database = Database(DATABASE)
+    database = Database(DATABASE, debug=True)  # NOTE ----------------------------------------------- toggle debug info
 except _sqlite.OperationalError:
-    print("Couldn't find database, please check path in assets.constants.py")
-    exit()
+    print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
 
 athens: Airport = Airport.db(database.execute("select * from Airport where IATA = 'ATH'").fetchone())
 """Home airport"""
