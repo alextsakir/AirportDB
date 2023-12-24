@@ -1,13 +1,12 @@
 __all__: tuple[str] = "database", "athens"
 
 import datetime as _datetime
-import random
 from enum import Enum
-import sqlite3 as _sqlite
-from random import choice
-from typing import NoReturn, Self, Union, Optional, ClassVar
+import sqlite3 as _sql
+from random import choice as _ch, randint as _rand
+from typing import Any, ClassVar, NoReturn, Self, Union, Optional
 
-from assets.constants import DATABASE
+from assets.constants import DATABASE, null
 from assets.models import Airport, Day, Flight, Gate, Schedule
 
 
@@ -31,8 +30,8 @@ class Database:
         Pass debug=True to have debugging information printed
         """
         self.name: str = name
-        self.connection: _sqlite.Connection = _sqlite.Connection(path)
-        self.cursor: _sqlite.Cursor = self.connection.cursor()
+        self.connection: _sql.Connection = _sql.Connection(path)
+        self.cursor: _sql.Cursor = self.connection.cursor()
         Database.Tables = Enum("Tables", [(_table.upper(), _table) for _table in self.tables])  # NOTE
         Database._DEBUG = debug
         if self._DEBUG:
@@ -57,12 +56,12 @@ class Database:
     def __call__(self, *args):
         return self.execute(args)  # TODO
 
-    def execute(self, *args) -> Union[_sqlite.Cursor, _sqlite.Error]:  # TODO ----- __sql: str, __parameters: Any = ...
+    def execute(self, *args) -> Union[_sql.Cursor, _sql.Error]:  # TODO ----------- __sql: str, __parameters: Any = ...
         if "drop" in args[0]:
             raise AttributeError("You are not allowed to delete tables")  # TODO ----------------------------- check it
         try:
-            return self.cursor.execute(*args)  # FIXME -------------------------------- raises _sqlite.ProgrammingError
-        except _sqlite.Error as error:
+            return self.cursor.execute(*args)
+        except _sql.ProgrammingError as error:
             print("Failed to execute the above query", error)
             return error
 
@@ -80,61 +79,88 @@ class Database:
 
     @property
     def _dates(self) -> iter:
+        """
+        Protected generator property used by generate_scheduled_flights, yields all the dates between the period
+        specified at the class variables _SCHEDULE_START and _SCHEDULE_END.
+
+        *Created on 22 Dec 2023.*
+        """
         for _date in range(int((self._SCHEDULE_END - self._SCHEDULE_START + _datetime.timedelta(1)).days)):
             yield self._SCHEDULE_START + _datetime.timedelta(_date)
 
     def airline(self, designator: str) -> tuple:
+        """
+        Searches for an Airline record with the passed designator and returns a tuple of its data.
+
+        *Created on 22 Dec 2023.*
+        """
         if len(designator) != 2:
             raise AttributeError(f"Airline designators have exactly two characters, {designator} is not valid.")
         return self.cursor.execute(f"select * from Airline where designator like '%{designator}%'").fetchone()
 
     def generate_scheduled_flights(self, flight_code: str) -> str:
+        """
+        Creates Flight records for a single Schedule and stores them to database, only for the days
+        specified in Schedule. One Schedule record and many flight records share the same flight code.
+        Flight records have different date but always the same time, also specified in Schedule.
+
+        *Created on 22 Dec 2023.*
+        """
         _report: list[str] = list()
+        # _data: list[Any] = list()
+        _counter: int = 0
         _s = Schedule.db(self.cursor.execute("select * from Schedule where code = ?", (flight_code,)).fetchone())
         if self._DEBUG:
             print("SCHEDULED FLIGHT:", _s)
         _airline = self.airline(_s.code[:2])
-        _airplanes = self.cursor.execute(f"select * from Airplane where airline = {_airline[0]}").fetchall()
-        _time = _s.departure.hour, _s.departure.minute
+        _airplanes = self.cursor.execute("select * from Airplane where airline = ?", (_airline[0],)).fetchall()
+        _time: tuple = ()
+
         if _s.is_departure:
-            ...
+            _time = _s.departure.hour, _s.departure.minute
+        elif _s.is_arrival:
+            _time = _s.arrival.hour, _s.arrival.minute
 
         for date in self._dates:
-            current_day: Day = Day.day(date)  # NOTE ------- create Flight only for the days specified in Schedule.days
+            current_day: Day = Day.day(date)
             if current_day in _s.days:
                 if self._DEBUG:
+                    _counter += 1
                     print(date, current_day, current_day in _s.days)
-                data: list = [_s.code, _s.from_airport, _s.to_airport]
+                data = [_s.code, _s.from_airport, _s.to_airport]
                 if _s.is_departure:
-                    data.extend([_datetime.datetime(date.year, date.month, date.day, *_time), None])
+                    data.extend([_datetime.datetime(date.year, date.month, date.day, *_time), null])
                 if _s.is_arrival:
-                    data.extend([None, _datetime.datetime(date.year, date.month, date.day, *_time)])
-                data.extend([None, random.randint(1, 40)])  # NOTE ------------------ state column will be filled later
+                    data.extend([null, _datetime.datetime(date.year, date.month, date.day, *_time)])
+                data.extend([null, _rand(1, 40)])  # NOTE ------------------ state column will be filled later
                 _gate = Gate.random()
-                data.extend([_gate.number, _gate.terminal, choice(_airplanes)[0]])
+                data.extend([_gate.number, _gate.terminal, _ch(_airplanes)[0]])
 
                 if self._DEBUG:
                     print(data)
 
+                """
                 query = (f"insert into Flight (code, from_airport, to_airport, departure, arrival, state,"
                          f" check_in, gate_n, gate_t, airplane) values ('{data[0]}', '{data[1]}',"
                          f"'{data[2]}', '{data[3]}', '{data[4]}', '{data[5]}', '{data[6]}', '{data[7]}',"
                          f"'{data[8]}', '{data[9]}')")  # FIXME an einai dynaton tetoio syntax
+                """
 
                 # self.cursor.execute(query)
 
             # _report.append(str(Flight))
-
+        if self._DEBUG:
+            print(f"{_counter} SCHEDULED FLIGHTS CREATED")
         return "\n".join(_elem for _elem in _report)
 
     def table_tuples(self, table_name: str) -> list[tuple]:
         return self.cursor.execute(f"select * from {table_name}").fetchall()
 
     def random_airport_id(self) -> int:
-        return choice(self.table_tuples("Airport"))[0]
+        return _ch(self.table_tuples("Airport"))[0]
 
     def random_airline_designator(self) -> str:
-        return choice(self.table_tuples("Airline"))[2]
+        return _ch(self.table_tuples("Airline"))[2]
 
     def schedules(self) -> str:
         _out: list[str] = ["headers..."]
@@ -158,7 +184,7 @@ database: Optional[Database] = None
 
 try:
     database = Database(DATABASE, debug=True)  # NOTE ----------------------------------------------- toggle debug info
-except _sqlite.OperationalError:
+except _sql.OperationalError:
     print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
 
 athens: Airport = Airport.db(database.execute("select * from Airport where IATA = 'ATH'").fetchone())

@@ -23,7 +23,7 @@ from abc import abstractmethod, ABC
 from datetime import datetime, date, timezone as _t_zone, timedelta
 from enum import Enum
 from math import sin, cos, sqrt, asin, radians, degrees, atan
-from random import choice, randint, shuffle
+from random import choice as _ch, randint as _rand, shuffle as _shuf
 from types import SimpleNamespace
 from typing import NoReturn, overload, Union, Iterator, Optional, Any, Self, Type, ClassVar, TypedDict
 
@@ -820,29 +820,29 @@ class Employee(DatabaseRecord):
 
     @staticmethod
     def _random_ssn() -> int:
-        return int(str().join([str(randint(1, 9)) for _ in range(9)]))
+        return int(str().join([str(_rand(1, 9)) for _ in range(9)]))
 
     @classmethod
     def generate_email(cls, first: str, last: str, birth_date: date) -> str:
         """*Created on 9 Nov 2023.*"""
-        _choice, _user, first, last = randint(1, 9), str(), first.lower(), last.lower()
-        _user = first[:-randint(1, len(first) - 2)] + choice(["_", "-", ".", ""]) + last[:-randint(1, len(last) - 2)]
+        _choice, _user, first, last = _rand(1, 9), str(), first.lower(), last.lower()
+        _user = first[:-_rand(1, len(first) - 2)] + _ch(["_", "-", ".", ""]) + last[:-_rand(1, len(last) - 2)]
         match _choice:
-            case 1 | 2: _user += str().join([str(randint(0, 9)) for _ in range(randint(1, 3))])
+            case 1 | 2: _user += str().join([str(_rand(0, 9)) for _ in range(_rand(1, 3))])
             case 3 | 4 | 5: _user += str(birth_date.year)
-            case 6 | 7: _user = choice(cls.COMMON_WORDS) + choice(["_", "-", ".", ""]) + _user
-        return _user + "@" + choice(cls.DOMAINS) if len(_user) > 10 else cls.generate_email(first, last, birth_date)
+            case 6 | 7: _user = _ch(cls.COMMON_WORDS) + _ch(["_", "-", ".", ""]) + _user
+        return _user + "@" + _ch(cls.DOMAINS) if len(_user) > 10 else cls.generate_email(first, last, birth_date)
 
     @classmethod
     def random_tuple(cls) -> tuple:
         """*Created on 9 Nov 2023.*"""
         cls._load_files()
-        _data = [cls._random_ssn(), choice(cls.FIRST_NAMES), choice(cls.FIRST_NAMES), choice(cls.LAST_NAMES)]
-        _telephone: str = "+30 694 " + str().join([str(randint(0, 9)) for _ in range(3)]) + " "
-        _telephone += str().join([str(randint(0, 9)) for _ in range(4)])
-        _birth = date(randint(*cls.YEAR_RANGE), randint(1, 12), randint(1, 28))
-        _data.extend([_telephone, cls.generate_email(_data[1], _data[3], _birth), choice(cls.STREETS), randint(1, 75)])
-        _data.extend([choice(cls.TOWNS), randint(10_000, 19_900), str(_birth), 0, 2])
+        _data = [cls._random_ssn(), _ch(cls.FIRST_NAMES), _ch(cls.FIRST_NAMES), _ch(cls.LAST_NAMES)]
+        _telephone: str = "+30 694 " + str().join([str(_rand(0, 9)) for _ in range(3)]) + " "
+        _telephone += str().join([str(_rand(0, 9)) for _ in range(4)])
+        _birth = date(_rand(*cls.YEAR_RANGE), _rand(1, 12), _rand(1, 28))
+        _data.extend([_telephone, cls.generate_email(_data[1], _data[3], _birth), _ch(cls.STREETS), _rand(1, 75)])
+        _data.extend([_ch(cls.TOWNS), _rand(10_000, 19_900), str(_birth), 0, 2])
         return tuple(_data)
 
 
@@ -1061,22 +1061,22 @@ class Schedule(DatabaseRecord):
 
     @staticmethod
     def random_code(airline_designator: str) -> str:
-        return airline_designator + "-" + str(randint(100, 900))
+        return airline_designator + "-" + str(_rand(100, 900))
 
     @classmethod
     def random_hour(cls) -> datetime:
-        return datetime(*cls.MONTH, 1, randint(0, 23), 5 * randint(0, 11))
+        return datetime(*cls.MONTH, 1, _rand(0, 23), 5 * _rand(0, 11))
 
     @classmethod
     def random_tuple(cls, airline_designator: str, ath_id: int, other_id: int) -> tuple:
         _data, _airports = [cls.random_code(airline_designator)], [ath_id, other_id]
-        shuffle(_airports)
+        _shuf(_airports)
         _data.extend(_airports)
         if _data[1] == ath_id:
             _data.extend([str(cls.random_hour()), None])  # fixme
         elif _data[2] == ath_id:
             _data.extend([None, str(cls.random_hour())])
-        _data.append(randint(0, 127))
+        _data.append(_rand(0, 127))
         return tuple(_data)
 
 
