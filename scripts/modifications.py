@@ -1,9 +1,5 @@
-import sqlite3
+from assets import *
 
-connection = sqlite3.Connection("../airport.sqlite")
-cursor = connection.cursor()
-
-connection.execute("delete from Sex where id = 3;")
-
-connection.commit()
-connection.close()
+results = database.cursor.execute("select * from Flight").fetchall()
+for result in results:
+    print(result)

@@ -1,4 +1,5 @@
 from assets import *
 
-
-print(database.Tables.AIRPORT.value)
+results = database.cursor.execute("select * from Airline")
+for result in results:
+    print(result)

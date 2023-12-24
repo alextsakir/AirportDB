@@ -12,8 +12,9 @@ Schedule(DatabaseRecord), Flight(DatabaseRecord)
 and the match-case statement (PEP634 ~ PEP636)**
 """
 
-__all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day", "Container", "DatabaseRecord",
-                       "Coordinate", "Coordinates", "Rectangle", "Employee", "Airport", "Schedule", "Flight")
+__all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day", "Container",
+                       "DatabaseRecord", "Coordinate", "Coordinates", "Rectangle", "Employee",
+                       "Airport", "Schedule", "Flight", "Gate")
 __author__ = "A. Tsakiridis"
 __version__ = "1.0"
 
@@ -583,7 +584,8 @@ class Coordinates:
         *Created on 8 Nov 2023.*
         """
         hours, minutes = divmod(int(arc * 3600 / LAND_SPEED), 60)
-        if hours > 0: return f"{hours} hours, {minutes} minutes"
+        if hours > 0:
+            return f"{hours} hours, {minutes} minutes"
         return f"{minutes} minutes"
 
 
@@ -663,7 +665,8 @@ class Rectangle:
             _data = lat, long
         elif not lat and not long and item and isinstance(item, Coordinates):
             _data = float(item.lat), float(item.long)
-        if self.lat[0] <= _data[0] <= self.lat[1] and self.long[0] <= _data[1] <= self.long[1]: return True
+        if self.lat[0] <= _data[0] <= self.lat[1] and self.long[0] <= _data[1] <= self.long[1]:
+            return True
         return False
 
 
@@ -862,7 +865,7 @@ class Airport(DatabaseRecord):
 
     class Dict(TypedDict):
         """
-        KEYS: id, iata, country, timezone, name, description, location, runways
+        KEYS: flight_id, iata, country, timezone, name, description, location, runways
         """
         id: int
         iata: str
@@ -1061,7 +1064,7 @@ class Flight(DatabaseRecord):
     def __init__(self, flight_id: int, code: str, from_airport: int, to_airport: int,
                  departure: datetime, arrival: datetime, state: int,
                  check_in: int, gate_n: int, gate_t: str, airplane: int) -> NoReturn:
-        self.id: int = flight_id
+        self.flight_id: int = flight_id
         self.code: str = code
         self.from_airport: int = from_airport
         self.to_airport: int = to_airport
@@ -1084,7 +1087,7 @@ class Flight(DatabaseRecord):
 
 class Gate:
 
-    _DATA = (("A", 1, 23), ("B", 1, 31), ("C", 15, 40))  # NOTE ---------------------------------- according to website
+    _DATA = (("A", 1, 23), ("B", 1, 31), ("C", 15, 40))  # NOTE ------------------------- according to official website
 
     def __init__(self, number: int, terminal: str) -> NoReturn:
         self.number: int = number

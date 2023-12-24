@@ -1,6 +1,7 @@
+from os.path import dirname, abspath
 from typing import Final
 
-PROJECT: Final[str] = "C:/Users/alexa/PycharmProjects/Databases"
+PROJECT: Final[str] = dirname(dirname(abspath(__file__)))
 DATABASE: Final[str] = PROJECT + "/airport.sqlite"
 
 CRUISE_SPEED: Final[int] = 400

@@ -137,8 +137,8 @@ class Database:
     def schedules(self) -> str:
         _out: list[str] = ["headers..."]
         _query = ("select code, A2.IATA, A.IATA, departure, arrival, days from Schedule "
-                  "join main.Airport A on A.id = Schedule.end "
-                  "join main.Airport A2 on A2.id = Schedule.start")
+                  "join main.Airport A on A.flight_id = Schedule.end "
+                  "join main.Airport A2 on A2.flight_id = Schedule.start")
 
         schedules = self.cursor.execute(_query).fetchall()
         for schedule in schedules:
@@ -152,7 +152,10 @@ class Database:
         return "\n".join(element for element in _out)
 
 
-database: Database = Database(DATABASE)
+try:
+    database: Database = Database(DATABASE)
+except _sqlite.OperationalError:
+    print("Couldn't find database, please check path in assets.constants.py")
 
 if __name__ == "__main__":
     print(database.schedules())

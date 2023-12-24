@@ -1,8 +1,8 @@
 from assets import *
 
 QUERY = ("select code, A2.IATA, A.IATA, departure, arrival, days from Schedule "
-         "join main.Airport A on A.id = Schedule.end "
-         "join main.Airport A2 on A2.id = Schedule.start")
+         "join main.Airport A on A.flight_id = Schedule.end "
+         "join main.Airport A2 on A2.flight_id = Schedule.start")
 
 data = database.cursor.execute(QUERY).fetchall()
 for schedule in data:
