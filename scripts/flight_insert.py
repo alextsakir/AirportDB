@@ -1,5 +1,3 @@
-import datetime
-
 from assets import *
 
-database.generate_scheduled_flights("LH-328")
+database.generate_scheduled_flights("LX-193")

@@ -1,4 +1,4 @@
-__all__: tuple[str] = "database"
+__all__: tuple[str] = "database", "athens"
 
 import datetime as _datetime
 import random
@@ -8,7 +8,7 @@ from random import choice
 from typing import NoReturn, Self, Union, Optional, ClassVar
 
 from assets.constants import DATABASE
-from assets.models import Schedule, Day, Flight, Gate
+from assets.models import Airport, Day, Flight, Gate, Schedule
 
 
 class Database:
@@ -116,7 +116,7 @@ class Database:
 
                 print(data)
 
-                self.cursor.execute(f"insert into Flight (code, 'from', 'to', departure, arrival, state, check_in,"
+                self.cursor.execute(f"insert into Flight (code, from_airport, to_airport, departure, arrival, state, check_in,"
                                     f"gate_n, gate_t, airplane) values ('{data[0]}', '{data[1]}', '{data[2]}',"
                                     f"'{data[3]}', '{data[4]}', '{data[5]}', '{data[6]}', '{data[7]}', '{data[8]}',"
                                     f"'{data[9]}')")  # FIXME an einai dynaton tetoio syntax
@@ -137,8 +137,8 @@ class Database:
     def schedules(self) -> str:
         _out: list[str] = ["headers..."]
         _query = ("select code, A2.IATA, A.IATA, departure, arrival, days from Schedule "
-                  "join main.Airport A on A.flight_id = Schedule.end "
-                  "join main.Airport A2 on A2.flight_id = Schedule.start")
+                  "join main.Airport A on A.id = Schedule.end "
+                  "join main.Airport A2 on A2.id = Schedule.start")
 
         schedules = self.cursor.execute(_query).fetchall()
         for schedule in schedules:
@@ -156,6 +156,10 @@ try:
     database: Database = Database(DATABASE)
 except _sqlite.OperationalError:
     print("Couldn't find database, please check path in assets.constants.py")
+    exit()
+
+athens: Airport = Airport.db(database.execute("select * from Airport where IATA = 'ATH'").fetchone())
+"""Home airport"""
 
 if __name__ == "__main__":
     print(database.schedules())

@@ -1,7 +1,7 @@
 from os.path import dirname, abspath
 from typing import Final
 
-PROJECT: Final[str] = dirname(dirname(abspath(__file__)))
+PROJECT: Final[str] = dirname(dirname(abspath(__file__)))  # fixed on 24 Dec 2023
 DATABASE: Final[str] = PROJECT + "/airport.sqlite"
 
 CRUISE_SPEED: Final[int] = 400
