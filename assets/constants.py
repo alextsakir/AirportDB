@@ -1,8 +1,14 @@
+__all__: tuple[str] = ("PROJECT", "DATABASE", "null", "NULL", "CRUISE_SPEED", "LAND_SPEED", "EARTH_EQUATORIAL_RADIUS",
+                       "EARTH_MEAN_RADIUS", "EARTH_POLAR_RADIUS", "MAX_DEGREE_LAT", "MAX_DEGREE_LONG", "MAX_MINUTE")
+
 from os.path import dirname, abspath
 from typing import Final
 
 PROJECT: Final[str] = dirname(dirname(abspath(__file__)))  # fixed on 24 Dec 2023
 DATABASE: Final[str] = PROJECT + "/airport.sqlite"
+
+null: Final[None] = None
+NULL: Final[None] = None
 
 CRUISE_SPEED: Final[int] = 400
 LAND_SPEED: Final[int] = 320
