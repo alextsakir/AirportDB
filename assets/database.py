@@ -6,7 +6,7 @@ import sqlite3 as _sql
 from random import choice as _ch, randint as _rand
 from typing import ClassVar, NoReturn, Self, Union, Optional
 
-from assets.constants import DATABASE, null
+from assets.constants import DATABASE
 from assets.models import Airport, Day, Flight, Gate, Schedule
 
 
@@ -107,7 +107,7 @@ class Database:
         *Created on 22 Dec 2023.*
         """
         _report: list[str] = list()
-        # _data: list[Any] = list()
+        _data: list = list()
         _counter: int = 0
         _s = Schedule.db(self.cursor.execute("select * from Schedule where code = ?", (flight_code,)).fetchone())
         if self._DEBUG:
@@ -123,52 +123,78 @@ class Database:
                 if self._DEBUG:
                     _counter += 1
                     print(date, current_day, current_day in _s.days)
-                data = [_s.code, _s.from_airport, _s.to_airport]
+                _data = [_s.code, _s.from_airport, _s.to_airport]
                 if _s.is_departure:
-                    data.extend([_datetime.datetime(date.year, date.month, date.day, *_time), null])
+                    _data.append(_datetime.datetime(date.year, date.month, date.day, *_time))
                 if _s.is_arrival:
-                    data.extend([null, _datetime.datetime(date.year, date.month, date.day, *_time)])
-                data.extend([null, _rand(1, 40)])  # NOTE --------------------------- state column will be filled later
+                    _data.append(_datetime.datetime(date.year, date.month, date.day, *_time))
+                _data.extend([None, _rand(1, 40)])  # NOTE --------------------------- state column will be filled later
                 _gate = Gate.random()
-                data.extend([_gate.number, _gate.terminal, _ch(_airplanes)[0]])
+                _data.extend([_gate.number, _gate.terminal, _ch(_airplanes)[0]])
 
                 if self._DEBUG:
-                    print(data)
+                    print(_data)
 
-                """
+                '''
                 query = (f"insert into Flight (code, from_airport, to_airport, departure, arrival, state,"
-                         f" check_in, gate_n, gate_t, airplane) values ('{data[0]}', '{data[1]}',"
-                         f"'{data[2]}', '{data[3]}', '{data[4]}', '{data[5]}', '{data[6]}', '{data[7]}',"
-                         f"'{data[8]}', '{data[9]}')")
-                """  # TODO ----------------------------------------------------------------------------- to be deleted
+                         f" check_in, gate_n, gate_t, airplane) values ('{_data[0]}', '{_data[1]}',"
+                         f"'{_data[2]}', '{_data[3]}', '{_data[4]}', '{_data[5]}', '{_data[6]}', '{_data[7]}',"
+                         f"'{_data[8]}', '{_data[9]}')")
+                '''  # TODO ----------------------------------------------------------------------------- to be deleted
 
-                departure = ("insert into Flight (code, from_airport, to_airport, departure, state,"
-                             " check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-                arrival = ("insert into Flight (code, from_airport, to_airport, arrival, state,"
-                           " check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                departure = ("insert into Flight (code, from_airport, to_airport, departure, state, "
+                             "check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                arrival = ("insert into Flight (code, from_airport, to_airport, arrival, state, "
+                           "check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
                 query = departure if _s.is_departure else arrival if _s.is_arrival else None
+                # query = "insert into Flight (code, from_airport, to_airport, "
+                # query += "departure, " if _s.is_departure else "arrival, "
+                # query += "state, check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                self.cursor.execute(query, _data)
 
-                # self.cursor.execute(query, data)
-
-            # _report.append(str(Flight))
+            _report.append(str(_data))
         if self._DEBUG:
             print(f"{_counter} SCHEDULED FLIGHTS CREATED")
         return "\n".join(_elem for _elem in _report)
 
-    def states_init(self) -> NoReturn:
+    def schedule_occurences(self) -> NoReturn:
+        """
+        For each Schedule record, counts Flight occurrences and stores count at Schedule.occurrences.
+
+        *Created on 25 Dec 2023.*
+        """
+
+
+        return
+
+    def states_init(self, state: str = "Scheduled") -> NoReturn:
         """
         Checks each flight record and sets state to Scheduled if it's null.
 
-        *Created on 22 Dec 2023.*
+        *Created on 24 Dec 2023.*
         """
         _counter: int = 0
+        state_value = self.cursor.execute("select id from State where id = ?", (state,)).fetchone()
         flights: list = self.cursor.execute("select * from Flight").fetchall()
         for flight in flights:
             if flight[6] is None:
                 _counter += 1
-                self.cursor.execute("update Flight set state = 1 where id = ?", (flight[0],))
+                self.cursor.execute("update Flight set state = ? where id = ?", (state_value, flight[0]))
         if self._DEBUG:
-            print(f"{_counter} FLIGHT STATES SET TO 'SCHEDULED'")
+            print(f"{_counter} FLIGHT STATES SET TO {state}")
+        return
+
+    def null_rectifier(self) -> NoReturn:
+        """
+        Replaces None values in records with <null>.
+
+        *Created on 25 Dec 2023.*
+        """
+        _counter: int = 0
+        schedules: list = self.cursor.execute("select * from Schedule").fetchall()  # TODO
+        ...
+        if self._DEBUG:
+            print(f"{_counter} NONE VALUES WERE REPLACED WITH NULL")
         return
 
     def table_tuples(self, table_name: str) -> list[tuple]:
@@ -181,7 +207,7 @@ class Database:
         return _ch(self.table_tuples("Airline"))[2]
 
     def schedules(self) -> str:
-        _out: list[str] = ["headers..."]
+        _out: list[str] = [Schedule.headers()]
         _query = ("select code, A1.IATA, A2.IATA, departure, arrival, days from Schedule "
                   "join main.Airport A1 on A1.id = Schedule.end "
                   "join main.Airport A2 on A2.id = Schedule.start")
@@ -199,12 +225,10 @@ class Database:
 
 
 database: Optional[Database] = None
-
 try:
     database = Database(DATABASE, debug=True)  # NOTE ----------------------------------------------- toggle debug info
 except _sql.OperationalError:
     print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
-
 athens: Airport = Airport.db(database.execute("select * from Airport where IATA = 'ATH'").fetchone())
 """Home airport"""
 
