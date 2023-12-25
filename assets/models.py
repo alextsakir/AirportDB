@@ -18,14 +18,18 @@ __all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day", "Co
 __author__ = "A. Tsakiridis"
 __version__ = "1.3"
 
-import random
 from abc import abstractmethod, ABC
-from datetime import datetime as _dt, date, timezone as _t_zone, timedelta
+from datetime import datetime as _dt, date as _date, timezone as _t_zone, timedelta as _timed
 from enum import Enum
 from math import sin, cos, sqrt, asin, radians, degrees, atan
-from random import choice as _ch, randint as _rand, shuffle as _shuf
+from random import choice as _ch, randint as _rand
+from sys import version_info, stderr as standard_error
 from types import SimpleNamespace
-from typing import NoReturn, overload, Union, Iterator, Optional, Any, Self, Type, ClassVar, TypedDict
+from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar, TypedDict
+if version_info >= (3, 11):
+    from typing import Self
+else:
+    print("Please use Python 3.11 or higher")
 
 from assets.constants import *
 
@@ -86,8 +90,8 @@ class Day(Enum):
         return iter([member for member in self.__class__])
 
     @classmethod
-    def day(cls, number: int | date) -> Optional[Self]:
-        if isinstance(number, date):
+    def day(cls, number: int | _date) -> Optional[Self]:
+        if isinstance(number, _date):
             number = number.weekday() + 1 if number.weekday() < 6 else 0
 
         if not 0 <= number <= 6:
@@ -99,7 +103,7 @@ class Day(Enum):
 
     @classmethod
     def today(cls):  # note------------------------------------------------ from official documentation
-        print("today is %s" % cls(date.today().weekday()).name)  # fixme weekday() returns 0 for Monday
+        print("today is %s" % cls(_date.today().weekday()).name)  # fixme weekday() returns 0 for Monday
         raise NotImplementedError
 
     @classmethod
@@ -158,7 +162,7 @@ class DatabaseRecord(ABC):
     __slots__: tuple[str] = ()
 
     @classmethod
-    def db(cls, args: tuple) -> Any:  # TODO ----------------------------------------- -> __class__ ? typing.Self? ABC?
+    def db(cls, args: tuple | list) -> Self:  # TODO --------------------------------- -> __class__ ? typing.Self? ABC?
         """
         Alternative factory method for creating objects from database records.
         """
@@ -691,20 +695,25 @@ class Airline(DatabaseRecord):
 
 class Employee(DatabaseRecord):
 
-    class Composite(ABC):
-        pass
+    class Composite:
 
-        @abstractmethod
-        def __str__(self) -> str:
-            ...
+        __slots__: tuple[str] = ()
+
+        @property
+        def complete(self) -> bool:
+            for _slot in self.__slots__:
+                if getattr(self, _slot) is (str() or None):
+                    return False
+            return True
 
     class Name(Composite):
 
-        def __init__(self, first: str, middle: str, last: str) -> NoReturn:
-            super().__init__()  # TODO ------------------------------------------------------------------ to be removed
-            self.first: str = first
-            self.middle: str = middle
-            self.last: str = last
+        __slots__: tuple[str] = "first", "middle", "last"
+
+        def __init__(self, first: str = str(), middle: str = str(), last: str = str()) -> NoReturn:
+            self.first: str = first if isinstance(first, str) else str()
+            self.middle: str = middle if isinstance(middle, str) else str()
+            self.last: str = last if isinstance(last, str) else str()
             return
 
         def __str__(self) -> str:
@@ -712,21 +721,38 @@ class Employee(DatabaseRecord):
             out += " " * (14 - len(out)) + self.middle
             return out + " " * (28 - len(out)) + self.last
 
+        def __setattr__(self, key: str, value: Optional[str]) -> NoReturn:
+            if len(value):
+                if not value.isalpha():
+                    raise AttributeError(f"{value.upper()} IS NOT VALID, PLEASE CHECK YOUR INPUT.")
+                value = value.capitalize().replace(" ", "")
+            object.__setattr__(self, key, value)
+
     class Contact(Composite):
 
-        def __init__(self, telephone: str, email: str) -> NoReturn:
-            super().__init__()  # TODO ------------------------------------------------------------------ to be removed
-            self.telephone: str = telephone
-            self.email: str = email
+        __slots__: tuple[str] = "telephone", "email"
+
+        def __init__(self, telephone: str | int = str(), email: str = str()) -> NoReturn:
+            self.telephone: str = str(telephone) if isinstance(telephone, int) else str()
+            self.email: str = email if isinstance(email, str) else str()
             return
 
         def __str__(self) -> str:
             return self.telephone + " " * 5 + self.email
 
+        def __setattr__(self, key: str, value: Optional[str]) -> NoReturn:
+            if value:
+                value = value.replace(" ", "")
+                if key == "telephone" and len(value) != 10:
+                    raise AttributeError(f"{value} IS NOT VALID, PLEASE ENTER A {key.upper()} WITH 10 CHARACTERS.")
+            object.__setattr__(self, key, value)
+
     class Address(Composite):
 
-        def __init__(self, street: str, number: int, town: str, postal_code: int) -> NoReturn:
-            super().__init__()  # TODO ------------------------------------------------------------------ to be removed
+        __slots__: tuple[str] = "street", "number", "town", "postal_code"
+
+        def __init__(self, street: Optional[str] = None, number: Optional[int] = None,
+                     town: Optional[str] = None, postal_code: Optional[int] = None) -> NoReturn:
             self.street: str = street
             self.number: int = number
             self.town: str = town
@@ -752,32 +778,39 @@ class Employee(DatabaseRecord):
         if cls._LOADED_NAMES:
             return 0
 
-        _F: list[str] = open(cls._TEXT_PATH + "english_names.txt").readlines()  # ------------------------- FIRST_NAMES
-        _L: list[str] = open(cls._TEXT_PATH + "english_last_names_usa.txt").readlines()  # ----------------- LAST_NAMES
-        _S: list[str] = open(cls._TEXT_PATH + "english_streets_patras.txt").readlines()  # -------------------- STREETS
-        _C: list[str] = open(cls._TEXT_PATH + "english_words_common.txt").readlines()  # ----------------------- COMMON
-        _T: list[str] = open(cls._TEXT_PATH + "greek_towns.txt").readlines()  # --------------------------------- TOWNS
+        try:
+            _F: list[str] = open(cls._TEXT_PATH + "english_names.txt").readlines()  # --------------------- FIRST_NAMES
+            _L: list[str] = open(cls._TEXT_PATH + "english_last_names_usa.txt").readlines()  # ------------- LAST_NAMES
+            _S: list[str] = open(cls._TEXT_PATH + "english_streets_patras.txt").readlines()  # ---------------- STREETS
+            _C: list[str] = open(cls._TEXT_PATH + "english_words_common.txt").readlines()  # ------------- COMMON_WORDS
+            _T: list[str] = open(cls._TEXT_PATH + "greek_towns.txt").readlines()  # ----------------------------- TOWNS
 
-        _P = (_F, cls.FIRST_NAMES), (_L, cls.LAST_NAMES), (_S, cls.STREETS), (_C, cls.COMMON_WORDS), (_T, cls.TOWNS)
-        for pair in _P:
-            for _name in pair[0]:
-                pair[1].append(_name.replace("\n", str()))
-        cls._LOADED_NAMES = True
+            _P = (_F, cls.FIRST_NAMES), (_L, cls.LAST_NAMES), (_S, cls.STREETS), (_C, cls.COMMON_WORDS), (_T, cls.TOWNS)
+            for pair in _P:
+                for _name in pair[0]:
+                    pair[1].append(_name.replace("\n", str()))
+            cls._LOADED_NAMES = True
+        except FileNotFoundError or OSError:
+            print(f"THERE IS NO {cls._TEXT_PATH} IN YOUR COMPUTER.", file=standard_error)
+            return -1
         return len(cls.FIRST_NAMES + cls.LAST_NAMES + cls.STREETS + cls.COMMON_WORDS + cls.TOWNS)
 
     # =================================================================================================================
 
+    __slots__: tuple[str] = "ssn", "name", "contact", "address", "birth_date", "dept_id", "sex"
+
     @classmethod
-    def random(cls) -> Self:
+    def random(cls) -> Optional[Self]:
         """Alternative factory method, creates and returns random Employee object."""
-        return cls(*cls.random_tuple())
+        random_tuple: tuple = cls.random_tuple()
+        return cls(*random_tuple) if random_tuple is not None else None
 
     def __init__(self, ssn: Optional[int] = None,
                  first: Optional[str] = None, middle: Optional[str] = None, last: Optional[str] = None,
                  telephone: Optional[str] = None, email: Optional[str] = None,
                  street: Optional[str] = None, number: Optional[int] = None,
                  town: Optional[str] = None, postal_code: Optional[int] = None,
-                 birth_date: Union[str, date, None] = None, dept_id: Optional[int] = None,
+                 birth_date: Union[str, _date, None] = None, dept_id: Optional[int] = None,
                  sex: Optional[int] = None) -> NoReturn:
         """*Created on 7 Nov 2023.*"""
         self.ssn: int = ssn
@@ -786,11 +819,13 @@ class Employee(DatabaseRecord):
         self.address: Employee.Address = Employee.Address(street, number, town, postal_code)
         # _format: str = DatetimeFormat.DATE.value if len(birth_date) == 10 else DatetimeFormat.DATETIME.value  #  NOTE
         _format: str = DatetimeFormat.DATE.value
-        self.birth_date: date = birth_date if isinstance(birth_date, date) else _dt.strptime(birth_date, _format)
+        self.birth_date: Optional[_date] = None
+        if birth_date:
+            self.birth_date = birth_date if isinstance(birth_date, _date) else _dt.strptime(birth_date, _format)
         self.dept_id: int = dept_id
         self.sex: int = sex
 
-        if len(str(ssn)) != 9:
+        if ssn and len(str(ssn)) != 9:
             raise AttributeError(f"SSN must have exactly 9 digits, {ssn} has {len(str(ssn))}, fix it and try again.")
         return
 
@@ -823,7 +858,7 @@ class Employee(DatabaseRecord):
         return int(str().join([str(_rand(1, 9)) for _ in range(9)]))
 
     @classmethod
-    def generate_email(cls, first: str, last: str, birth_date: date) -> str:
+    def generate_email(cls, first: str, last: str, birth_date: _date) -> str:
         """*Created on 9 Nov 2023.*"""
         _choice, _user, first, last = _rand(1, 9), str(), first.lower(), last.lower()
         _user = first[:-_rand(1, len(first) - 2)] + _ch(["_", "-", ".", ""]) + last[:-_rand(1, len(last) - 2)]
@@ -834,13 +869,15 @@ class Employee(DatabaseRecord):
         return _user + "@" + _ch(cls.DOMAINS) if len(_user) > 10 else cls.generate_email(first, last, birth_date)
 
     @classmethod
-    def random_tuple(cls) -> tuple:
+    def random_tuple(cls) -> Optional[tuple]:
         """*Created on 9 Nov 2023.*"""
-        cls._load_files()
+        if cls._load_files() == -1:
+            print(f"COULD NOT GENERATE RANDOM TUPLE", file=standard_error)
+            return
         _data = [cls._random_ssn(), _ch(cls.FIRST_NAMES), _ch(cls.FIRST_NAMES), _ch(cls.LAST_NAMES)]
         _telephone: str = "+30 694 " + str().join([str(_rand(0, 9)) for _ in range(3)]) + " "
         _telephone += str().join([str(_rand(0, 9)) for _ in range(4)])
-        _birth = date(_rand(*cls.YEAR_RANGE), _rand(1, 12), _rand(1, 28))
+        _birth = _date(_rand(*cls.YEAR_RANGE), _rand(1, 12), _rand(1, 28))
         _data.extend([_telephone, cls.generate_email(_data[1], _data[3], _birth), _ch(cls.STREETS), _rand(1, 75)])
         _data.extend([_ch(cls.TOWNS), _rand(10_000, 19_900), str(_birth), 0, 2])
         return tuple(_data)
@@ -848,7 +885,7 @@ class Employee(DatabaseRecord):
 
 class Airport(DatabaseRecord):
 
-    class Runway:
+    class Runway(DatabaseRecord):
 
         __slots__: tuple[str] = "id", "name", "length", "airport_id"
 
@@ -858,6 +895,13 @@ class Airport(DatabaseRecord):
             self.length: int = length
             self.airport_id: int = airport_id
             return
+
+        def __str__(self) -> str:
+            pass
+
+        @staticmethod
+        def headers() -> str:
+            pass
 
         @property
         def direction(self) -> int:
@@ -885,7 +929,7 @@ class Airport(DatabaseRecord):
 
     __slots__: tuple[str] = "id", "iata", "country", "timezone", "name", "description", "location", "runways"
 
-    class Dict(TypedDict):
+    class Dict(TypedDict):  # NOTE ----------------------------------------------------------------------------- UNUSED
         """
         KEYS: flight_id, iata, country, timezone, name, description, location, runways
         """
@@ -902,7 +946,7 @@ class Airport(DatabaseRecord):
         self.id: int = airport_id
         self.iata: str = iata
         self.country: str = country  # --------------------------------------------------------------- TODO enumeration
-        self.timezone: _t_zone = _t_zone(timedelta(hours=timezone))
+        self.timezone: _t_zone = _t_zone(_timed(hours=timezone))
         self.name: str = name
         self.description: str = str()
         self.location: Optional[Coordinates] = Coordinates(lat, long, iata)
@@ -1012,15 +1056,15 @@ class Airport(DatabaseRecord):
 
 class Schedule(DatabaseRecord):
 
-    MONTH: ClassVar[tuple[int, int]] = 2024, 2
-
-    __slots__: tuple[str] = "code", "from_airport", "to_airport", "departure", "arrival", "_days", "modified", "active"
+    __slots__: tuple[str] = ("code", "from_airport", "to_airport", "departure", "arrival", "_days",
+                             "modified", "active", "occurrences")
 
     def __init__(self, code: Optional[str] = None,
                  from_airport: Optional[int] = None, to_airport: Optional[int] = None,
                  departure: Optional[Union[_dt, str]] = None,
                  arrival: Optional[Union[_dt, str]] = None, days: Optional[int] = None,
-                 modified: Optional[Union[_dt, str]] = None, active: Optional[bool] = None) -> None:
+                 modified: Optional[Union[_dt, str]] = None, active: Optional[int] = None,
+                 occurrences: Optional[int] = None) -> None:
         self.code: str = code
         self.from_airport: int = from_airport
         self.to_airport: int = to_airport
@@ -1034,6 +1078,7 @@ class Schedule(DatabaseRecord):
         self._days: int = days
         self.modified: Optional[_dt] = modified if isinstance(modified, _dt) else _dt.strptime(modified, _f)
         self.active: bool = bool(active)
+        self.occurrences: int = occurrences
         return
 
     def __str__(self) -> str:
@@ -1060,26 +1105,6 @@ class Schedule(DatabaseRecord):
     @property
     def is_arrival(self) -> bool:
         return self.departure is None and self.arrival is not None
-
-    @staticmethod
-    def random_code(airline_designator: str) -> str:
-        return airline_designator + "-" + str(_rand(100, 900))
-
-    @classmethod
-    def random_hour(cls) -> _dt:
-        return _dt(*cls.MONTH, 1, _rand(0, 23), 5 * _rand(0, 11))
-
-    @classmethod
-    def random_tuple(cls, airline_designator: str, ath_id: int, other_id: int) -> tuple:
-        _data, _airports = [cls.random_code(airline_designator)], [ath_id, other_id]
-        _shuf(_airports)
-        _data.extend(_airports)
-        if _data[1] == ath_id:
-            _data.extend([str(cls.random_hour()), None])  # fixme
-        elif _data[2] == ath_id:
-            _data.extend([None, str(cls.random_hour())])
-        _data.append(_rand(0, 127))
-        return tuple(_data)
 
 
 class Flight(DatabaseRecord):
@@ -1126,8 +1151,8 @@ class Gate:
 
     @classmethod
     def random(cls) -> Self:
-        _choice = random.randint(0, len(cls._DATA) - 1)
-        return cls(random.randint(*cls._DATA[_choice][1:]), cls._DATA[_choice][0])
+        _choice = _rand(0, len(cls._DATA) - 1)
+        return cls(_rand(*cls._DATA[_choice][1:]), cls._DATA[_choice][0])
 
 
 if __name__ == "__main__":

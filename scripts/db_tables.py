@@ -1,8 +1,6 @@
 from assets import *
 
-query = "select * from Airport"
+# database.schedule_occurrences()
 
-results = database.cursor.execute(query).fetchall()
-
-for result in results:
-    print(result)
+# database.cursor.execute("update Schedule set arrival = ? where code = ?", (datetime(2024, 1, 1, 8, 15, 0), 'A3-240',))
+database.schedule_occurrences()
