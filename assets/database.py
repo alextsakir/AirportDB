@@ -4,7 +4,7 @@ import datetime as _datetime
 from enum import Enum
 import sqlite3 as _sql
 from random import choice as _ch, randint as _rand
-from typing import Any, ClassVar, NoReturn, Self, Union, Optional
+from typing import ClassVar, NoReturn, Self, Union, Optional
 
 from assets.constants import DATABASE, null
 from assets.models import Airport, Day, Flight, Gate, Schedule
@@ -114,12 +114,8 @@ class Database:
             print("SCHEDULED FLIGHT:", _s)
         _airline = self.airline(_s.code[:2])
         _airplanes = self.cursor.execute("select * from Airplane where airline = ?", (_airline[0],)).fetchall()
-        _time: tuple = ()
-
-        if _s.is_departure:
-            _time = _s.departure.hour, _s.departure.minute
-        elif _s.is_arrival:
-            _time = _s.arrival.hour, _s.arrival.minute
+        _time = _s.departure if _s.is_departure else _s.arrival
+        _time = _time.hour, _time.minute
 
         for date in self._dates:
             current_day: Day = Day.day(date)
@@ -132,7 +128,7 @@ class Database:
                     data.extend([_datetime.datetime(date.year, date.month, date.day, *_time), null])
                 if _s.is_arrival:
                     data.extend([null, _datetime.datetime(date.year, date.month, date.day, *_time)])
-                data.extend([null, _rand(1, 40)])  # NOTE ------------------ state column will be filled later
+                data.extend([null, _rand(1, 40)])  # NOTE --------------------------- state column will be filled later
                 _gate = Gate.random()
                 data.extend([_gate.number, _gate.terminal, _ch(_airplanes)[0]])
 
@@ -143,15 +139,37 @@ class Database:
                 query = (f"insert into Flight (code, from_airport, to_airport, departure, arrival, state,"
                          f" check_in, gate_n, gate_t, airplane) values ('{data[0]}', '{data[1]}',"
                          f"'{data[2]}', '{data[3]}', '{data[4]}', '{data[5]}', '{data[6]}', '{data[7]}',"
-                         f"'{data[8]}', '{data[9]}')")  # FIXME an einai dynaton tetoio syntax
-                """
+                         f"'{data[8]}', '{data[9]}')")
+                """  # TODO ----------------------------------------------------------------------------- to be deleted
 
-                # self.cursor.execute(query)
+                departure = ("insert into Flight (code, from_airport, to_airport, departure, state,"
+                             " check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                arrival = ("insert into Flight (code, from_airport, to_airport, arrival, state,"
+                           " check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                query = departure if _s.is_departure else arrival if _s.is_arrival else None
+
+                # self.cursor.execute(query, data)
 
             # _report.append(str(Flight))
         if self._DEBUG:
             print(f"{_counter} SCHEDULED FLIGHTS CREATED")
         return "\n".join(_elem for _elem in _report)
+
+    def states_init(self) -> NoReturn:
+        """
+        Checks each flight record and sets state to Scheduled if it's null.
+
+        *Created on 22 Dec 2023.*
+        """
+        _counter: int = 0
+        flights: list = self.cursor.execute("select * from Flight").fetchall()
+        for flight in flights:
+            if flight[6] is None:
+                _counter += 1
+                self.cursor.execute("update Flight set state = 1 where id = ?", (flight[0],))
+        if self._DEBUG:
+            print(f"{_counter} FLIGHT STATES SET TO 'SCHEDULED'")
+        return
 
     def table_tuples(self, table_name: str) -> list[tuple]:
         return self.cursor.execute(f"select * from {table_name}").fetchall()
@@ -164,8 +182,8 @@ class Database:
 
     def schedules(self) -> str:
         _out: list[str] = ["headers..."]
-        _query = ("select code, A2.IATA, A.IATA, departure, arrival, days from Schedule "
-                  "join main.Airport A on A.id = Schedule.end "
+        _query = ("select code, A1.IATA, A2.IATA, departure, arrival, days from Schedule "
+                  "join main.Airport A1 on A1.id = Schedule.end "
                   "join main.Airport A2 on A2.id = Schedule.start")
 
         schedules = self.cursor.execute(_query).fetchall()
