@@ -1,33 +1,40 @@
-__all__: tuple[str] = "database", "athens"
+__all__: tuple[str] = "database"
 
-import datetime as _datetime
+from datetime import datetime as _dt, date as _date, timedelta as _timed
 from enum import Enum
 import sqlite3 as _sql
-from random import choice as _ch, randint as _rand
+from random import choice as _ch, randint as _rand, shuffle as _shuf
+from types import GeneratorType
 from typing import ClassVar, NoReturn, Self, Union, Optional
 
-from assets.constants import DATABASE
-from assets.models import Airport, Day, Flight, Gate, Schedule
+from assets import models
 
 
 class Database:
     class Tables(Enum):  # NOTE UNUSED
         pass  # ---- --------- members filled in __init__, could not use Tables.__setattr__ because Enum's immutability
 
+    _MONTH: ClassVar[tuple[int, int]] = 2024, 2
     _DEBUG: ClassVar[bool] = False
     _EXISTS: ClassVar[bool] = False
-    _SCHEDULE_START: ClassVar[_datetime.date] = _datetime.date(2024, 2, 1)
-    _SCHEDULE_END: ClassVar[_datetime.date] = _datetime.date(2024, 4, 30)
+    _QUERY_COUNTER: ClassVar[int] = 0
+    _SCHEDULE_START: ClassVar[_date] = _date(*_MONTH, 1)
+    _SCHEDULE_END: ClassVar[_date] = _date(_MONTH[0], _MONTH[1] + 2, 30)
+
+    @property
+    def athens(self) -> models.Airport:
+        """Returns Athens airport object."""
+        return models.Airport.db(self.cursor.execute("select * from Airport where IATA = 'ATH'").fetchone())
 
     def __new__(cls, *args, **kwargs) -> Optional["Database"]:
-        if cls._EXISTS:  # NOTE ------------------------------- prevents the creation of more than one Database objects
-            raise SyntaxError("Only one Database instance should be created")
+        if cls._EXISTS:  # NOTE -------------------------------- prevents the creation of more than one Database object
+            raise SyntaxError(f"Only one {cls.__name__} instance should be created")
         cls._EXISTS = True
         return super().__new__(cls)
 
     def __init__(self, path: str, name: Optional[str] = "AIRPORT", debug: Optional[bool] = False) -> NoReturn:
         """
-        Pass debug=True to have debugging information printed
+        Pass debug=True to have debugging information displayed.
         """
         self.name: str = name
         self.connection: _sql.Connection = _sql.Connection(path)
@@ -35,14 +42,14 @@ class Database:
         Database.Tables = Enum("Tables", [(_table.upper(), _table) for _table in self.tables])  # NOTE
         Database._DEBUG = debug
         if self._DEBUG:
-            print(f"DATABASE {self.name} CONNECTED")
+            print(f"{self.name} DATABASE CONNECTED")
         return
 
     def __str__(self) -> str:
         raise NotImplementedError
 
     def __enter__(self) -> Self:
-        raise NotImplementedError  # return self.__init__()  TODO
+        raise NotImplementedError  # return self.__init__() ?? TODO
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         raise NotImplementedError  # del self TODO
@@ -50,7 +57,7 @@ class Database:
     def __del__(self) -> NoReturn:
         self.connection.commit()
         if self._DEBUG:
-            print("CHANGES_COMMITTED\t\tDB_CLOSED")
+            print("CHANGES_COMMITTED\t\tDATABASE_CLOSED")
         self.connection.close()
 
     def __call__(self, *args):
@@ -58,8 +65,9 @@ class Database:
 
     def execute(self, *args) -> Union[_sql.Cursor, _sql.Error]:  # TODO ----------- __sql: str, __parameters: Any = ...
         if "drop" in args[0]:
-            raise AttributeError("You are not allowed to delete tables")  # TODO ----------------------------- check it
+            raise AttributeError("Table deletion is not permitted")  # TODO ---------------------------------- check it
         try:
+            self._QUERY_COUNTER += 1
             return self.cursor.execute(*args)
         except _sql.ProgrammingError as error:
             print("Failed to execute the above query", error)
@@ -78,15 +86,43 @@ class Database:
         return self.cursor.execute(f"pragma table_info({table_name});").fetchall()
 
     @property
-    def _dates(self) -> iter:
+    def _dates(self) -> GeneratorType:
         """
         Protected generator property used by generate_scheduled_flights, yields all the dates between the period
         specified at the class variables _SCHEDULE_START and _SCHEDULE_END.
 
         *Created on 22 Dec 2023.*
         """
-        for _date in range(int((self._SCHEDULE_END - self._SCHEDULE_START + _datetime.timedelta(1)).days)):
-            yield self._SCHEDULE_START + _datetime.timedelta(_date)
+        for _ in range(int((self._SCHEDULE_END - self._SCHEDULE_START + _timed(1)).days)):
+            yield self._SCHEDULE_START + _timed(_)
+
+    @staticmethod
+    def random_code(airline_designator: str) -> str:
+        return airline_designator + "-" + str(_rand(100, 900))
+
+    @classmethod
+    def random_hour(cls) -> _dt:
+        return _dt(*cls._MONTH, 1, _rand(0, 23), 5 * _rand(0, 11))
+
+    def random_schedule(self, airline_designator: str, other_id: int) -> models.Schedule:
+        """
+        Creates and returns a Schedule record using a given airline designator and an airport id, by choosing randomly
+        if it will be a departure or an arrival. The record will have a departure or arrival datetime, which
+        depends on whether the home airport of Athens is at from_airport or to_airport field. This datetime has always
+        the same date, set on class variable _MONTH, time is randomly generated, the same for days. Current timestamp
+        is stored at modified field, boolean active field is set to 1 (True) and occurrences are initialised to 0.
+
+        *Created on 25 Dec 2023.*
+        """
+        _data, _airports = [self.random_code(airline_designator)], [self.athens.id, other_id]
+        _shuf(_airports)
+        _data.extend(_airports)
+        if _data[1] == self.athens.id:
+            _data.extend([str(self.random_hour()), None])  # fixme
+        elif _data[2] == self.athens.id:
+            _data.extend([None, str(self.random_hour())])
+        _data.extend([_rand(0, 127), None, 1, 0])
+        return models.Schedule.db(_data)
 
     def airline(self, designator: str) -> tuple:
         """
@@ -109,7 +145,7 @@ class Database:
         _report: list[str] = list()
         _data: list = list()
         _counter: int = 0
-        _s = Schedule.db(self.cursor.execute("select * from Schedule where code = ?", (flight_code,)).fetchone())
+        _s = models.Schedule.db(self.cursor.execute("select * from Schedule where code = ?", (flight_code,)).fetchone())
         if self._DEBUG:
             print("SCHEDULED FLIGHT:", _s)
         _airline = self.airline(_s.code[:2])
@@ -118,18 +154,18 @@ class Database:
         _time = _time.hour, _time.minute
 
         for date in self._dates:
-            current_day: Day = Day.day(date)
+            current_day: models.Day = models.Day.day(date)
             if current_day in _s.days:
                 if self._DEBUG:
                     _counter += 1
                     print(date, current_day, current_day in _s.days)
                 _data = [_s.code, _s.from_airport, _s.to_airport]
                 if _s.is_departure:
-                    _data.append(_datetime.datetime(date.year, date.month, date.day, *_time))
+                    _data.append(_dt(date.year, date.month, date.day, *_time))
                 if _s.is_arrival:
-                    _data.append(_datetime.datetime(date.year, date.month, date.day, *_time))
+                    _data.append(_dt(date.year, date.month, date.day, *_time))
                 _data.extend([None, _rand(1, 40)])  # NOTE --------------------------- state column will be filled later
-                _gate = Gate.random()
+                _gate = models.Gate.random()
                 _data.extend([_gate.number, _gate.terminal, _ch(_airplanes)[0]])
 
                 if self._DEBUG:
@@ -157,24 +193,31 @@ class Database:
             print(f"{_counter} SCHEDULED FLIGHTS CREATED")
         return "\n".join(_elem for _elem in _report)
 
-    def schedule_occurences(self) -> NoReturn:
+    def schedule_occurrences(self) -> NoReturn:
         """
         For each Schedule record, counts Flight occurrences and stores count at Schedule.occurrences.
 
         *Created on 25 Dec 2023.*
         """
-
-
+        _counter: int = 0
+        for schedule in self.cursor.execute("select code, active, occurrences from Schedule").fetchall():
+            count = self.cursor.execute("select count() from Flight where code = ?", (schedule[0],)).fetchone()[0]
+            if schedule[2] != count:
+                _counter += abs(count - schedule[2]) if schedule[2] is not None else count
+                self.cursor.execute("update Schedule set occurrences = ? where code = ?", (count, schedule[0]))
+        if self._DEBUG:
+            print(f"{_counter} NEW FLIGHT OCCURRENCES DETECTED AND STORED")
         return
 
     def states_init(self, state: str = "Scheduled") -> NoReturn:
         """
         Checks each flight record and sets state to Scheduled if it's null.
+        State argument defaults to **Scheduled**.
 
         *Created on 24 Dec 2023.*
         """
         _counter: int = 0
-        state_value = self.cursor.execute("select id from State where id = ?", (state,)).fetchone()
+        state_value = self.cursor.execute("select id from State where name = ?", (state,)).fetchone()[0]
         flights: list = self.cursor.execute("select * from Flight").fetchall()
         for flight in flights:
             if flight[6] is None:
@@ -184,6 +227,15 @@ class Database:
             print(f"{_counter} FLIGHT STATES SET TO {state}")
         return
 
+    def update_schedule_timestamp(self, flight_code: str) -> NoReturn:
+        """
+        Searches for the Scheduled flight with the provided code and updates its modified column.
+
+        *Created on 25 Dec 2023.*
+        """
+        self.cursor.execute("update Schedule set modified = CURRENT_TIMESTAMP where code = ?", (flight_code,))
+        return
+
     def null_rectifier(self) -> NoReturn:
         """
         Replaces None values in records with <null>.
@@ -191,14 +243,19 @@ class Database:
         *Created on 25 Dec 2023.*
         """
         _counter: int = 0
-        schedules: list = self.cursor.execute("select * from Schedule").fetchall()  # TODO
+        # schedules: list = self.cursor.execute("select * from Schedule").fetchall()  # TODO
         ...
         if self._DEBUG:
             print(f"{_counter} NONE VALUES WERE REPLACED WITH NULL")
         return
 
     def table_tuples(self, table_name: str) -> list[tuple]:
-        return self.cursor.execute(f"select * from {table_name}").fetchall()
+        """
+        Queries all columns of the specified table and returns a list of tuples.
+
+        *Created on 25 Dec 2023.*
+        """
+        return self.cursor.execute("select * from ?", (table_name,)).fetchall()
 
     def random_airport_id(self) -> int:
         return _ch(self.table_tuples("Airport"))[0]
@@ -207,10 +264,10 @@ class Database:
         return _ch(self.table_tuples("Airline"))[2]
 
     def schedules(self) -> str:
-        _out: list[str] = [Schedule.headers()]
+        _out: list[str] = [models.Schedule.headers()]
         _query = ("select code, A1.IATA, A2.IATA, departure, arrival, days from Schedule "
-                  "join main.Airport A1 on A1.id = Schedule.end "
-                  "join main.Airport A2 on A2.id = Schedule.start")
+                  "join main.Airport A1 on A1.id = Schedule.to_airport "
+                  "join main.Airport A2 on A2.id = Schedule.from_airport")
 
         schedules = self.cursor.execute(_query).fetchall()
         for schedule in schedules:
@@ -219,18 +276,10 @@ class Database:
             row: str = schedule[0] + " " * 6 + airline + " " * (30 - len(airline)) + schedule[1] + "   " + schedule[2]
             row += " " * 6 + str(schedule[3]) + " " * (25 - len(str(schedule[3]))) + str(schedule[4])
             row += " " * (25 - len(str(schedule[4])))
-            _out.append(row + " ".join([member.value[1] for member in Day.code_to_days(schedule[5])]))
+            _out.append(row + " ".join([member.value[1] for member in models.Day.code_to_days(schedule[5])]))
 
         return "\n".join(element for element in _out)
 
 
-database: Optional[Database] = None
-try:
-    database = Database(DATABASE, debug=True)  # NOTE ----------------------------------------------- toggle debug info
-except _sql.OperationalError:
-    print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
-athens: Airport = Airport.db(database.execute("select * from Airport where IATA = 'ATH'").fetchone())
-"""Home airport"""
-
 if __name__ == "__main__":
-    print(database.schedules())
+    ...

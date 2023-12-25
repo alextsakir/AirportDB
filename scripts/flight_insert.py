@@ -1,3 +1,5 @@
 from assets import *
 
-database.generate_scheduled_flights("LX-193")
+# database.generate_scheduled_flights("W6-613")
+
+database.states_init()
