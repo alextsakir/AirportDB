@@ -20,7 +20,7 @@ __version__ = "1.3"
 
 import random
 from abc import abstractmethod, ABC
-from datetime import datetime, date, timezone as _t_zone, timedelta
+from datetime import datetime as _dt, date, timezone as _t_zone, timedelta
 from enum import Enum
 from math import sin, cos, sqrt, asin, radians, degrees, atan
 from random import choice as _ch, randint as _rand, shuffle as _shuf
@@ -786,7 +786,7 @@ class Employee(DatabaseRecord):
         self.address: Employee.Address = Employee.Address(street, number, town, postal_code)
         # _format: str = DatetimeFormat.DATE.value if len(birth_date) == 10 else DatetimeFormat.DATETIME.value  #  NOTE
         _format: str = DatetimeFormat.DATE.value
-        self.birth_date: date = birth_date if isinstance(birth_date, date) else datetime.strptime(birth_date, _format)
+        self.birth_date: date = birth_date if isinstance(birth_date, date) else _dt.strptime(birth_date, _format)
         self.dept_id: int = dept_id
         self.sex: int = sex
 
@@ -941,7 +941,7 @@ class Airport(DatabaseRecord):
 
     @property
     def local_time(self) -> str:
-        return datetime.now(self.timezone).strftime('%a %d %b %Y, %H:%M')
+        return _dt.now(self.timezone).strftime('%a %d %b %Y, %H:%M')
 
     def draw(self, other: Self) -> str:
         """
@@ -1014,24 +1014,26 @@ class Schedule(DatabaseRecord):
 
     MONTH: ClassVar[tuple[int, int]] = 2024, 2
 
-    __slots__: tuple[str] = "code", "from_airport", "to_airport", "departure", "arrival", "_days"
+    __slots__: tuple[str] = "code", "from_airport", "to_airport", "departure", "arrival", "_days", "modified", "active"
 
     def __init__(self, code: Optional[str] = None,
                  from_airport: Optional[int] = None, to_airport: Optional[int] = None,
-                 departure: Optional[Union[datetime, str]] = None,
-                 arrival: Optional[Union[datetime, str]] = None,
-                 days: Optional[int] = None):
+                 departure: Optional[Union[_dt, str]] = None,
+                 arrival: Optional[Union[_dt, str]] = None, days: Optional[int] = None,
+                 modified: Optional[Union[_dt, str]] = None, active: Optional[bool] = None) -> None:
         self.code: str = code
         self.from_airport: int = from_airport
         self.to_airport: int = to_airport
         _f: str = DatetimeFormat.DATETIME.value
-        self.departure: Optional[datetime] = None
-        self.arrival: Optional[datetime] = None
+        self.departure: Optional[_dt] = None
+        self.arrival: Optional[_dt] = None
         if departure is not None:
-            self.departure = departure if isinstance(departure, datetime) else datetime.strptime(departure, _f)
+            self.departure = departure if isinstance(departure, _dt) else _dt.strptime(departure, _f)
         if arrival is not None:
-            self.arrival = arrival if isinstance(arrival, datetime) else datetime.strptime(arrival, _f)
+            self.arrival = arrival if isinstance(arrival, _dt) else _dt.strptime(arrival, _f)
         self._days: int = days
+        self.modified: Optional[_dt] = modified if isinstance(modified, _dt) else _dt.strptime(modified, _f)
+        self.active: bool = bool(active)
         return
 
     def __str__(self) -> str:
@@ -1064,8 +1066,8 @@ class Schedule(DatabaseRecord):
         return airline_designator + "-" + str(_rand(100, 900))
 
     @classmethod
-    def random_hour(cls) -> datetime:
-        return datetime(*cls.MONTH, 1, _rand(0, 23), 5 * _rand(0, 11))
+    def random_hour(cls) -> _dt:
+        return _dt(*cls.MONTH, 1, _rand(0, 23), 5 * _rand(0, 11))
 
     @classmethod
     def random_tuple(cls, airline_designator: str, ath_id: int, other_id: int) -> tuple:
@@ -1087,14 +1089,14 @@ class Flight(DatabaseRecord):
                              "gate_number", "gate_terminal", "airplane")
 
     def __init__(self, flight_id: int, code: str, from_airport: int, to_airport: int,
-                 departure: datetime, arrival: datetime, state: int,
+                 departure: _dt, arrival: _dt, state: int,
                  check_in: int, gate_n: int, gate_t: str, airplane: int) -> NoReturn:
         self.flight_id: int = flight_id
         self.code: str = code
         self.from_airport: int = from_airport
         self.to_airport: int = to_airport
-        self.departure: datetime = departure
-        self.arrival: datetime = arrival
+        self.departure: _dt = departure
+        self.arrival: _dt = arrival
         self.state: int = state
         self.check_in: int = check_in
         self.gate_number: int = gate_n
