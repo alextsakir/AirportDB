@@ -11,7 +11,7 @@ for index in range(5):
 # print(Employee.random())
 
 emp = Employee()
-emp.name.first, emp.name.middle, emp.name.last = "Alexandros", "Marios", "Tsakiridis"
+emp.name.first, emp.name.middle, emp.name.last = "Alpha", "Beta", "Gamma"
 emp.contact = Employee.Contact("email here with spaces")
 
 print(dir(emp))
