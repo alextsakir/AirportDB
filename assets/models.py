@@ -1112,6 +1112,12 @@ class Schedule(DatabaseRecord):
         return [day.value[1] for day in self.days]
 
     @property
+    def valid(self) -> bool:
+        if self.from_airport == self.to_airport:
+            return False
+        return True
+
+    @property
     def is_departure(self) -> bool:
         return self.departure is not None and self.arrival is None
 
