@@ -14,4 +14,5 @@ emp = Employee()
 emp.name.first, emp.name.middle, emp.name.last = "Alpha", "Beta", "Gamma"
 emp.contact = Employee.Contact("email here with spaces")
 
-print(dir(emp))
+emp = Employee.random()
+print(emp)
