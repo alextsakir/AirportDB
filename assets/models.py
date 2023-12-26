@@ -162,11 +162,23 @@ class DatabaseRecord(ABC):
     __slots__: tuple[str] = ()
 
     @classmethod
-    def db(cls, args: tuple | list) -> Self:  # TODO --------------------------------- -> __class__ ? typing.Self? ABC?
+    def db(cls, args: tuple | list) -> Self:
         """
         Alternative factory method for creating objects from database records.
         """
         return cls(*args)
+
+    @property
+    def tuple(self) -> tuple:
+        """
+        Returns a tuple containing values from slot attributes of the object.
+
+        *Created on Dec 26 2023.*
+        """
+        _data: list = []
+        for _slot in self.__slots__:
+            _data.append(self.__dict__[_slot])
+        return tuple(_data)
 
     @abstractmethod
     def __str__(self) -> str:
