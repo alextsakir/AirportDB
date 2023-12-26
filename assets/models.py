@@ -151,6 +151,8 @@ class DatabaseRecord(ABC):
         ``db(args: tuple)``: class method used to create child-class instances by arguments in a tuple,
         at the same order they are stored in the database.
 
+        ``tuple``: property to get a tuple with object's data stored in attributes.
+
         ``headers()``: abstract static method to be implemented. It should return a string with headers for the
         instance attributes, at the order of columns in the corresponding database table.
 
@@ -177,12 +179,15 @@ class DatabaseRecord(ABC):
         """
         _data: list = []
         for _slot in self.__slots__:
-            _data.append(self.__dict__[_slot])
+            _data.append(object.__getattribute__(self, _slot))
         return tuple(_data)
 
     @abstractmethod
     def __str__(self) -> str:
         ...
+
+    def __len__(self) -> int:
+        return len(self.__slots__)
 
     @staticmethod
     @abstractmethod
@@ -698,7 +703,7 @@ class Airline(DatabaseRecord):
         pass
 
     def __str__(self) -> str:
-        return self.name
+        return self.designator + "  " + self.name
 
     @staticmethod
     def headers() -> str:
