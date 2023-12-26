@@ -1159,6 +1159,13 @@ class Gate:
     _DATA = (("A", 1, 23), ("B", 1, 31), ("C", 15, 40))  # NOTE ------------------------- according to official website
 
     def __init__(self, number: int, terminal: str) -> NoReturn:
+        """
+        According to El. Venizelos website, gates **A1 - A23** and gates **B1 - B31** are located at the Main Terminal
+        Building, while gates **C15 - 40** are located at the Satellite Terminal Building.
+
+        Hall A is used for flights to Non-Schengen countries and Non-European countries.
+        Hall B handles flights to Intra-Schengen countries as well as domestic services.
+        """
         self.number: int = number
         self.terminal: str = terminal
         return
