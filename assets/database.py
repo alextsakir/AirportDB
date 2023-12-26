@@ -7,6 +7,7 @@ from random import choice as _ch, randint as _rand, shuffle as _shuf
 from types import GeneratorType
 from typing import ClassVar, NoReturn, Self, Union, Optional, Any
 
+from assets.constants import DATABASE
 from assets import models
 
 
@@ -191,7 +192,7 @@ class Database:
                     _data.append(_dt(date.year, date.month, date.day, *_time))
                 if _s.is_arrival:
                     _data.append(_dt(date.year, date.month, date.day, *_time))
-                _data.extend([None, _rand(1, 40)])  # NOTE --------------------------- state column will be filled later
+                _data.extend([None, _rand(1, 40)])  # NOTE --------------------- state column will be filled separately
                 _gate = models.Gate.random()
                 _data.extend([_gate.number, _gate.terminal, _ch(_airplanes)[0]])
 
@@ -199,7 +200,7 @@ class Database:
                     print(_data)
 
                 '''
-                query = (f"insert into Flight (code, from_airport, to_airport, departure, arrival, state,"
+                _query = (f"insert into Flight (code, from_airport, to_airport, departure, arrival, state,"
                          f" check_in, gate_n, gate_t, airplane) values ('{_data[0]}', '{_data[1]}',"
                          f"'{_data[2]}', '{_data[3]}', '{_data[4]}', '{_data[5]}', '{_data[6]}', '{_data[7]}',"
                          f"'{_data[8]}', '{_data[9]}')")
@@ -209,11 +210,11 @@ class Database:
                              "check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
                 arrival = ("insert into Flight (code, from_airport, to_airport, arrival, state, "
                            "check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-                query = departure if _s.is_departure else arrival if _s.is_arrival else None
-                # query = "insert into Flight (code, from_airport, to_airport, "
-                # query += "departure, " if _s.is_departure else "arrival, "
-                # query += "state, check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                self._cursor.execute(query, _data)
+                _query = departure if _s.is_departure else arrival if _s.is_arrival else None
+                # _query = "insert into Flight (code, from_airport, to_airport, "  # noqa
+                # _query += "departure, " if _s.is_departure else "arrival, "
+                # _query += "state, check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                self._cursor.execute(_query, _data)
 
             _report.append(str(_data))
         if self._DEBUG:
@@ -233,7 +234,7 @@ class Database:
                 _counter += abs(count - schedule[2]) if schedule[2] is not None else count
                 self._cursor.execute("update Schedule set occurrences = ? where code = ?", (count, schedule[0]))
         if self._DEBUG:
-            print(f"{_counter} NEW FLIGHT OCCURRENCES DETECTED AND STORED")
+            print(f"{_counter} NEW FLIGHT OCCURRENCES DETECTED")
         return
 
     def states_init(self, state: str = "Scheduled") -> NoReturn:
@@ -307,6 +308,12 @@ class Database:
 
         return "\n".join(element for element in _out)
 
+
+database: Optional[Database] = None
+try:
+    database = Database(DATABASE, debug=True)  # NOTE ----------------------------------------------- toggle debug info
+except _sql.OperationalError:
+    print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
 
 if __name__ == "__main__":
     ...
