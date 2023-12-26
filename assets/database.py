@@ -49,10 +49,10 @@ class Database:
         raise NotImplementedError
 
     def __enter__(self) -> Self:
-        raise NotImplementedError  # return self.__init__() ?? TODO
+        raise NotImplementedError  # TODO
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        raise NotImplementedError  # del self TODO
+        raise NotImplementedError  # TODO
 
     def __del__(self) -> NoReturn:
         self.connection.commit()
@@ -124,15 +124,16 @@ class Database:
         _data.extend([_rand(0, 127), None, 1, 0])
         return models.Schedule.db(_data)
 
-    def airline(self, designator: str) -> tuple:
+    def airline(self, designator: str) -> models.Airline:
         """
-        Searches for an Airline record with the passed designator and returns a tuple of its data.
+        Searches for an Airline record with the passed designator and returns an Airline object with its data.
 
         *Created on 22 Dec 2023.*
         """
         if len(designator) != 2:
             raise AttributeError(f"Airline designators have exactly two characters, {designator} is not valid.")
-        return self.cursor.execute(f"select * from Airline where designator like '%{designator}%'").fetchone()
+        return models.Airline.db(self.cursor.execute(f"select * from Airline "
+                                                     f"where designator like '%{designator}%'").fetchone())
 
     def generate_scheduled_flights(self, flight_code: str) -> str:
         """
@@ -148,7 +149,7 @@ class Database:
         _s = models.Schedule.db(self.cursor.execute("select * from Schedule where code = ?", (flight_code,)).fetchone())
         if self._DEBUG:
             print("SCHEDULED FLIGHT:", _s)
-        _airline = self.airline(_s.code[:2])
+        _airline = self.airline(_s.code[:2]).tuple
         _airplanes = self.cursor.execute("select * from Airplane where airline = ?", (_airline[0],)).fetchall()
         _time = _s.departure if _s.is_departure else _s.arrival
         _time = _time.hour, _time.minute
@@ -193,7 +194,7 @@ class Database:
             print(f"{_counter} SCHEDULED FLIGHTS CREATED")
         return "\n".join(_elem for _elem in _report)
 
-    def schedule_occurrences(self) -> NoReturn:
+    def update_schedule_occurrences(self) -> NoReturn:
         """
         For each Schedule record, counts Flight occurrences and stores count at Schedule.occurrences.
 
