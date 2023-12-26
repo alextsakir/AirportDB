@@ -29,7 +29,7 @@ from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar
 if version_info >= (3, 11):
     from typing import Self
 else:
-    print("Please use Python 3.11 or higher")
+    print(f"INCOMPATIBLE VERSION {version_info}, PLEASE USE PYTHON 3.11 OR HIGHER")
 
 from assets.constants import *
 
@@ -866,10 +866,6 @@ class Employee(DatabaseRecord):
                 _dir.remove(attr)
         return _dir
 
-    def tuple(self) -> tuple:
-        print(self.__dir__())  # TODO
-        return tuple()
-
     @staticmethod
     def _random_ssn() -> int:
         return int(str().join([str(_rand(1, 9)) for _ in range(9)]))
@@ -962,7 +958,7 @@ class Airport(DatabaseRecord):
                  name: str, lat: float = None, long: float = None) -> NoReturn:
         self.id: int = airport_id
         self.iata: str = iata
-        self.country: str = country  # --------------------------------------------------------------- TODO enumeration
+        self.country: str = country
         self.timezone: _t_zone = _t_zone(_timed(hours=timezone))
         self.name: str = name
         self.description: str = str()
@@ -1143,7 +1139,7 @@ class Flight(DatabaseRecord):
         self.check_in: int = check_in
         self.gate_number: int = gate_n
         self.gate_terminal: str = gate_t
-        self.airplane: int = airplane  # TODO foreign
+        self.airplane: int = airplane
         return
 
     def __str__(self) -> str:
@@ -1172,6 +1168,10 @@ class Gate:
 
     def __str__(self) -> str:
         return self.terminal + str(self.number)
+
+    def __conform__(self, protocol):
+        # if protocol is _sql.PrepareProtocol: return f"{self.x};{self.y}"
+        raise NotImplementedError
 
     @classmethod
     def random(cls) -> Self:
