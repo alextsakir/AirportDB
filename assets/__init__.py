@@ -1,5 +1,2 @@
-# __all__: tuple[str] = "constants", "database", ...
-
-from assets.constants import DATABASE
-from assets.database import Database
+from assets.database import database
 from assets.models import *
