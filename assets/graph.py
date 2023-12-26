@@ -31,7 +31,7 @@ class Edge:
 
     @property
     def vertices(self) -> str:
-        return self._vertices[0].name + "-" + self._vertices[1].name
+        return self._vertices[0].name + "-" + self._vertices[1]._name
 
 
 class Graph:

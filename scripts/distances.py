@@ -1,8 +1,9 @@
 from assets import *
 
-print(athens, athens.local_time, "\n\n", athens.headers(), athens.measurements_headers(), sep="")
+print(database.athens, database.athens.local_time, "\n\n",
+      database.athens.headers(), database.athens.measurements_headers(), sep="")
 
 for result in database.execute("select * from Airport where country != 'GREECE' order by long desc").fetchall():
-    airport = Airport.db(result)  # NOTE ----------------------------------------------- equivalent to Airport(*result)
-    print(airport, airport.local_time, athens.measurements(airport))
+    airport = Airport.db(result)
+    print(airport, airport.local_time, database.athens.measurements(airport))
 
