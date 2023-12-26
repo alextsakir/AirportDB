@@ -141,7 +141,7 @@ class Database:
         _data.extend([_rand(0, 127), None, 1, 0])
         return models.Schedule.db(_data)
 
-    def airline(self, designator: str) -> models.Airline:
+    def airline(self, designator: str) -> Optional[models.Airline]:
         """
         Searches for an Airline record with the passed designator and returns an Airline object with its data.
 
@@ -149,8 +149,17 @@ class Database:
         """
         if len(designator) != 2:
             raise AttributeError(f"Airline designators have exactly two characters, {designator} is not valid.")
-        return models.Airline.db(self._cursor.execute(f"select * from Airline "
-                                                     f"where designator like '%{designator}%'").fetchone())
+        return models.Airline.db(self(f"select * from Airline where designator = ?", (designator,)).fetchone())
+
+    def airport(self, iata: str) -> Optional[models.Airport]:
+        """
+        Searches for an Airport record with the passed IATA code and returns an Airport object with its data.
+
+        *Created on 26 Dec 2023.*
+        """
+        if len(iata) != 3:
+            raise AttributeError(f"IATA codes have exactly three characters, {iata} is not valid.")
+        return models.Airport.db(self(f"select * from Airport where IATA = ?", (iata,)).fetchone())
 
     def generate_scheduled_flights(self, flight_code: str) -> str:
         """
