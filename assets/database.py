@@ -175,7 +175,8 @@ class Database:
         _report: list[str] = list()
         _data: list = list()
         _counter: int = 0
-        _s = models.Schedule.db(self._cursor.execute("select * from Schedule where code = ?", (flight_code,)).fetchone())
+        _s = models.Schedule.db(self._cursor.execute("select * from Schedule where code = ?",
+                                                     (flight_code,)).fetchone())
         if self._DEBUG:
             print("SCHEDULED FLIGHT:", _s)
         _airline = self.airline(_s.code[:2]).tuple
