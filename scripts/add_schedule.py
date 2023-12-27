@@ -2,7 +2,7 @@ from assets import *
 
 '''
 for i in range(10):
-    other = database.random_airport_id()
+    other = database("select id from Airport where IATA != 'ATH'").fetchone()[0]
     ath = database.cursor.execute("select id from Airport where IATA = 'ATH'").fetchone()[0]
     record = Schedule.random_tuple(database.random_airline_designator(), ath, other)
     print(record)
@@ -10,7 +10,7 @@ for i in range(10):
                             "values (?, ?, ?, ?, ?, ?)", record)
 '''
 
-other = database.execute("select id from Airport where IATA = 'CTA'").fetchone()[0]
+other = database("select id from Airport where IATA = 'CTA'").fetchone()[0]
 record = database.random_schedule("A3", other)
 print(record)
 database.execute("insert into Schedule(code, from_airport, to_airport, departure, arrival, days, modified, "

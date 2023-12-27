@@ -133,6 +133,8 @@ class Database:
         *Created on 25 Dec 2023.*
         """
         _data, _airports = [self.random_code(airline_designator)], [self.athens.id, other_id]
+        if self.athens.id == other_id:
+            raise AttributeError(f"{other_id} CANNOT BE USED.")
         _shuf(_airports)
         _data.extend(_airports)
         if _data[1] == self.athens.id:
