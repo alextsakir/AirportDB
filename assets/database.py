@@ -81,11 +81,17 @@ class Database:
             raise AttributeError("Table deletion is not permitted")
         try:
             self._cursor.execute(__sql, __parameters)
+            print("QUERY EXECUTED")
             self.__class__._QUERY_COUNTER += 1
             return self._cursor
-        except _sql.ProgrammingError as error:
+        except _sql.DatabaseError as error:
             print("Failed to execute the above query", error)
             return error
+
+    def commit_save(self) -> NoReturn:
+        self._connection.commit()
+        self._connection.close()
+        return
 
     @property
     def description(self) -> tuple[tuple]:

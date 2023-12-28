@@ -1,8 +1,6 @@
 """
 enumerations: DatetimeFormat, CoordinateType, Quarter, Day
 
-Container, subclass of types.SimpleNamespace
-
 abstract class DatabaseRecord
 
 classes: Coordinates, Rectangle, Airline(DatabaseRecord), Employee(DatabaseRecord),
@@ -12,8 +10,8 @@ Airport(DatabaseRecord), Schedule(DatabaseRecord), Flight(DatabaseRecord), Gate
 and the match-case statement (PEP634 ~ PEP636)**
 """
 
-__all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day", "Container",
-                       "DatabaseRecord", "Coordinate", "Coordinates", "Rectangle", "Airline",
+__all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day",
+                       "_DatabaseRecord", "Coordinate", "Coordinates", "Rectangle", "Airline",
                        "Employee", "Airport", "Schedule", "Flight", "Gate")
 __author__ = "A. Tsakiridis"
 __version__ = "1.3"
@@ -24,8 +22,8 @@ from enum import Enum
 from math import sin, cos, sqrt, asin, radians, degrees, atan
 from random import choice as _ch, randint as _rand
 from sys import version_info, stderr as standard_error
-from types import SimpleNamespace
-from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar, TypedDict
+from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar, TypedDict, Tuple
+
 if version_info >= (3, 11):
     from typing import Self
 else:
@@ -135,13 +133,52 @@ class Day(Enum):
         return _out
 
 
-class Container(SimpleNamespace):
-    """
-    https://docs.python.org/3/library/types.html#types.SimpleNamespace
-    """
+class _HasTuple:
+
+    __slots__: tuple[str] = ()
+
+    @property
+    def columns(self) -> tuple[str, ...]:
+
+        _columns: list = []
+        for _slot in self.__slots__:
+            _attr = object.__getattribute__(self, _slot)
+            if hasattr(_attr, "columns"):
+                _columns.extend(_attr.columns)
+            else:
+                _columns.append(_slot)
+        return tuple(_columns)
+
+    @property
+    def tuple(self) -> tuple:
+        """
+        Returns a tuple containing values from slot attributes of the object.
+
+        *Created on Dec 26 2023.*
+        """
+        _data: list = []
+        for _slot in self.__slots__:
+            _attr = object.__getattribute__(self, _slot)
+            if hasattr(_attr, "tuple"):  # FIXME
+                _data.extend([*_attr.tuple])
+            else:
+                _data.append(object.__getattribute__(self, _slot))
+        return tuple(_data)
 
 
-class DatabaseRecord(ABC):
+class _Composite(_HasTuple):
+
+    @property
+    def complete(self) -> bool:
+        for _slot in self.__slots__:
+            if getattr(self, _slot) is (str() or None):
+                return False
+        return True
+
+
+class _DatabaseRecord(ABC, _HasTuple):
+
+    __slots__: tuple[str] = ()
 
     @abstractmethod
     def __init__(self, *args, **kwargs) -> NoReturn:
@@ -161,26 +198,12 @@ class DatabaseRecord(ABC):
         *Created on 6 Nov 2023.*
         """
 
-    __slots__: tuple[str] = ()
-
     @classmethod
     def db(cls, args: tuple | list) -> Self:
         """
         Alternative factory method for creating objects from database records.
         """
         return cls(*args)
-
-    @property
-    def tuple(self) -> tuple:
-        """
-        Returns a tuple containing values from slot attributes of the object.
-
-        *Created on Dec 26 2023.*
-        """
-        _data: list = []
-        for _slot in self.__slots__:
-            _data.append(object.__getattribute__(self, _slot))
-        return tuple(_data)
 
     @abstractmethod
     def __str__(self) -> str:
@@ -691,7 +714,7 @@ class Rectangle:
         return False
 
 
-class Airline(DatabaseRecord):
+class Airline(_DatabaseRecord):
 
     __slots__: tuple[str] = "id", "name", "designator"
 
@@ -710,20 +733,9 @@ class Airline(DatabaseRecord):
         pass
 
 
-class Employee(DatabaseRecord):
+class Employee(_DatabaseRecord):
 
-    class Composite:
-
-        __slots__: tuple[str] = ()
-
-        @property
-        def complete(self) -> bool:
-            for _slot in self.__slots__:
-                if getattr(self, _slot) is (str() or None):
-                    return False
-            return True
-
-    class Name(Composite):
+    class Name(_Composite):
 
         __slots__: tuple[str] = "first", "middle", "last"
 
@@ -745,7 +757,7 @@ class Employee(DatabaseRecord):
                 value = value.capitalize().replace(" ", "")
             object.__setattr__(self, key, value)
 
-    class Contact(Composite):
+    class Contact(_Composite):
 
         __slots__: tuple[str] = "telephone", "email"
 
@@ -761,10 +773,10 @@ class Employee(DatabaseRecord):
             if value:
                 value = value.replace(" ", "")
                 if key == "telephone" and len(value) != 10:
-                    raise AttributeError(f"{value} IS NOT VALID, PLEASE ENTER A {key.upper()} WITH 10 CHARACTERS.")
+                    raise AttributeError(f"{value} IS NOT VALID, PLEASE ENTER A {key.upper()} WITH 10 DIGITS.")
             object.__setattr__(self, key, value)
 
-    class Address(Composite):
+    class Address(_Composite):
 
         __slots__: tuple[str] = "street", "number", "town", "postal_code"
 
@@ -896,9 +908,9 @@ class Employee(DatabaseRecord):
         return tuple(_data)
 
 
-class Airport(DatabaseRecord):
+class Airport(_DatabaseRecord):
 
-    class Runway(DatabaseRecord):
+    class Runway(_DatabaseRecord):
 
         __slots__: tuple[str] = "id", "name", "length", "airport_id"
 
@@ -1067,7 +1079,7 @@ class Airport(DatabaseRecord):
         raise NotImplementedError
 
 
-class Schedule(DatabaseRecord):
+class Schedule(_DatabaseRecord):
 
     __slots__: tuple[str] = ("code", "from_airport", "to_airport", "departure", "arrival", "_days",
                              "modified", "active", "occurrences")
@@ -1126,7 +1138,7 @@ class Schedule(DatabaseRecord):
         return self.departure is None and self.arrival is not None
 
 
-class Flight(DatabaseRecord):
+class Flight(_DatabaseRecord):
 
     __slots__: tuple[str] = ("flight_id", "code", "from_airport", "to_airport",
                              "departure", "arrival", "state", "check_in",
