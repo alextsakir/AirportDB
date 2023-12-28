@@ -767,13 +767,27 @@ class Employee(_DatabaseRecord):
             return
 
         def __str__(self) -> str:
-            return self.telephone + " " * 5 + self.email
+            return self._telephone + " " * 5 + self.email
+
+        @property
+        def _telephone(self) -> str:
+            _list = [str(self.telephone)[0: 3], str(self.telephone)[3: 6], str(self.telephone)[6:]]
+            return "+30_" + str("_").join(_list)
 
         def __setattr__(self, key: str, value: Optional[str]) -> NoReturn:
-            if value:
-                value = value.replace(" ", "")
-                if key == "telephone" and len(value) != 10:
-                    raise AttributeError(f"{value} IS NOT VALID, PLEASE ENTER A {key.upper()} WITH 10 DIGITS.")
+            if not value:
+                return
+            value = value.replace(" ", "")
+            if key == "telephone":
+                value = value.replace("_", "").replace("-", "").replace("+", "")
+                if len(value) != 10 or not value.isnumeric():
+                    raise ValueError(f"{value} IS NOT VALID, PLEASE ENTER A {key.upper()} WITH 10 DIGITS.")
+            elif key == "email":
+                if value.count("@") != 1 or not value.endswith((".gr", ".com")):
+                    raise ValueError(f"EMAIL ADDRESS {value} IS NOT VALID.")
+                for char in value:
+                    if ord(char) > 122:
+                        raise UnicodeError(f"EMAIL ADDRESS {value} HAS INVALID CHARACTERS.")
             object.__setattr__(self, key, value)
 
     class Address(_Composite):
