@@ -1,17 +1,14 @@
 """
 enumerations: DatetimeFormat, CoordinateType, Quarter, Day
 
-abstract class DatabaseRecord
-
-classes: Coordinates, Rectangle, Airline(DatabaseRecord), Employee(DatabaseRecord),
-Airport(DatabaseRecord), Schedule(DatabaseRecord), Flight(DatabaseRecord), Gate
+classes: Coordinates, Rectangle, Airline, Employee, Airport, Schedule, Flight, Gate
 
 **NOTE: Python 3.11 required for typing.Self (PEP673), the pipe operator '|' (PEP604)
 and the match-case statement (PEP634 ~ PEP636)**
 """
 
 __all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day",
-                       "_DatabaseRecord", "Coordinate", "Coordinates", "Rectangle", "Airline",
+                       "Coordinate", "Coordinates", "Rectangle", "Airline",
                        "Employee", "Airport", "Schedule", "Flight", "Gate")
 __author__ = "A. Tsakiridis"
 __version__ = "1.3"
@@ -22,7 +19,7 @@ from enum import Enum
 from math import sin, cos, sqrt, asin, radians, degrees, atan
 from random import choice as _ch, randint as _rand
 from sys import version_info, stderr as standard_error
-from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar, TypedDict, Tuple
+from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar
 
 if version_info >= (3, 11):
     from typing import Self
@@ -32,7 +29,35 @@ else:
 from assets.constants import *
 
 
-class DatetimeFormat(Enum):
+class _Enum(Enum):  # ---------------------------------------------------------------------------- Enumeration template
+
+    @classmethod
+    def name(cls) -> str:
+        """
+        Returns enumeration's name.
+        """
+        return cls.__name__
+
+    @classmethod
+    def length(cls) -> int:
+        """
+        Returns the amount of enumeration's members.
+        """
+        return cls.__len__()
+
+    @classmethod
+    def __members(cls) -> list[Self]:  # deprecated
+        return list(cls.__members__.values())
+
+    @classmethod
+    def display(cls) -> str:
+        """
+        Returns a string representation of enumeration's members.
+        """
+        return cls.name() + ": " + str(" ").join([str(element) for element in cls])
+
+
+class DatetimeFormat(_Enum):
     """
     Members: **DATETIME, DATE, TIME**
 
@@ -41,14 +66,14 @@ class DatetimeFormat(Enum):
     DATETIME, DATE, TIME = "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%H:%M:%S"
 
 
-class CoordinateType(Enum):
+class CoordinateType(_Enum):
     """
     Members: **LATITUDINAL, LONGITUDINAL, UNKNOWN**
     """
     LATITUDINAL, LONGITUDINAL, UNKNOWN = "latitudinal", "longitudinal", "unknown"
 
 
-class Quarter(Enum):
+class Quarter(_Enum):
     """
     Members: **NORTH, SOUTH, EAST, WEST, UNKNOWN**
 
@@ -59,33 +84,27 @@ class Quarter(Enum):
     EAST, WEST = ("E", "east", CoordinateType.LONGITUDINAL), ("W", "west", CoordinateType.LONGITUDINAL)
     UNKNOWN = ("U", "unknown", CoordinateType.UNKNOWN)
 
-    def __iter__(self) -> Iterator[Self]:
-        return iter([member for member in self.__class__])
-
     @classmethod
     def valid(cls) -> str:
-        return str().join(member.value[0] + member.value[0].lower() for member in cls)
+        return str().join(_member.value[0] + _member.value[0].lower() for _member in cls)
 
     @classmethod
     def get(cls, char: str) -> Self:
         if char not in cls.valid():
             raise AttributeError(f"Quarter.get() accepts only {cls.valid()} or 'north', 'south', 'east', 'west'")
-        for member in cls:
-            if char.upper() == member.value[0] or char.lower() == member.value[1]:
-                return member
+        for _member in cls:
+            if char.upper() == _member.value[0] or char.lower() == _member.value[1]:
+                return _member
         return cls.UNKNOWN
 
 
 VALID_Q: str = Quarter.valid()  # -------------------------------------------------------------------------- NsSsEeWwUu
 
 
-class Day(Enum):
+class Day(_Enum):
     """Members: **SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY**"""
     SUNDAY, MONDAY, TUESDAY, WEDNESDAY = (0, "SUN"), (1, "MON"), (2, "TUE"), (3, "WED")
     THURSDAY, FRIDAY, SATURDAY = (4, "THU"), (5, "FRI"), (6, "SAT")
-
-    def __iter__(self):
-        return iter([member for member in self.__class__])
 
     @classmethod
     def day(cls, number: int | _date) -> Optional[Self]:
@@ -132,6 +151,8 @@ class Day(Enum):
                 _out.append(Day.day(index))
         return _out
 
+
+# =====================================================================================================================
 
 class _HasTuple:
 
@@ -501,7 +522,7 @@ class Coordinates:
         return
 
     def __getitem__(self, item: Union[str, int]) -> Optional[Coordinate]:  # subscriptable
-        if isinstance(item, int):
+        if isinstance(item, int) and item in (0, 1):
             return (self.lat, self.long)[item]
         elif isinstance(item, str):
             if item == "lat" or item == "latitude":
@@ -968,18 +989,6 @@ class Airport(_DatabaseRecord):
 
     __slots__: tuple[str] = "id", "iata", "country", "timezone", "name", "description", "location", "runways"
 
-    class Dict(TypedDict):  # NOTE ----------------------------------------------------------------------------- UNUSED
-        """
-        KEYS: flight_id, iata, country, timezone, name, description, location, runways
-        """
-        id: int
-        iata: str
-        timezone: _t_zone
-        name: str
-        description: str
-        location: Coordinates
-        runways: list["Airport.Runway"]
-
     def __init__(self, airport_id: int, iata: str, country: str, timezone: int,
                  name: str, lat: float = None, long: float = None) -> NoReturn:
         self.id: int = airport_id
@@ -1214,4 +1223,6 @@ class Gate:
 if __name__ == "__main__":
     gamma = Coordinate(0, CoordinateType.LATITUDINAL)
     alpha = Coordinate(0, CoordinateType.LATITUDINAL)
-    print(gamma.quarter)
+
+    for member in Day:
+        print(member)
