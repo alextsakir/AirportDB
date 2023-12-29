@@ -16,7 +16,7 @@ __version__ = "1.3"
 from abc import abstractmethod, ABC
 from datetime import datetime as _dt, date as _date, timezone as _t_zone, timedelta as _timed
 from enum import Enum
-from functools import total_ordering as __total_order
+from functools import cached_property, total_ordering as __total_order
 from math import sin, cos, sqrt, asin, radians, degrees, atan
 from random import choice as _ch, randint as _rand
 from sys import version_info, stderr as standard_error
@@ -156,7 +156,7 @@ class _HasTuple:
 
     __slots__: tuple[str] = ()
 
-    @property
+    @cached_property
     def columns(self) -> tuple[str, ...]:
 
         _columns: list = []
@@ -168,7 +168,7 @@ class _HasTuple:
                 _columns.append(_slot)
         return tuple(_columns)
 
-    @property
+    @cached_property
     def tuple(self) -> tuple:
         """
         Returns a tuple containing values from slot attributes of the object.
@@ -187,7 +187,7 @@ class _HasTuple:
 
 class _Composite(_HasTuple):
 
-    @property
+    @cached_property
     def complete(self) -> bool:
         for _slot in self.__slots__:
             if getattr(self, _slot) is (str() or None):
@@ -784,7 +784,7 @@ class Employee(_DatabaseRecord):
         def __str__(self) -> str:
             return self._telephone + " " * 5 + self.email
 
-        @property
+        @cached_property
         def _telephone(self) -> str:
             _list = [str(self.telephone)[0: 3], str(self.telephone)[3: 6], str(self.telephone)[6:]]
             return "+30_" + str("_").join(_list)
@@ -957,7 +957,7 @@ class Airport(_DatabaseRecord):
         def headers() -> str:
             pass
 
-        @property
+        @cached_property
         def direction(self) -> int:
             """
             Returns runway direction in deca-degrees, as declared in its name.
