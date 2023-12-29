@@ -45,6 +45,12 @@ Greenwich. Έτσι αποφεύγεται η σύγχυση σε πτήσεις
 
 Η οντότητα Flight έχει ένα attribute που λέγεται State. Τα διαφορετικά States είναι [να γραφτούν].
 
+### DEPENDENCIES
+
+PySimpleGUI package website: https://www.pysimplegui.org/en/latest/
+
+Download PySimpleGUI here: https://pypi.org/project/PySimpleGUI/4.18.0/
+
 
 
 
