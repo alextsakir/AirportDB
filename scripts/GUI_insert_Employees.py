@@ -3,10 +3,9 @@
 """
 
 import sys
+sys.path.append("./") # DO NOT TOUCH OTHERWISE VSCODE USERS CRYY :( 
 
 from assets.constants import DATABASE
-
-sys.path.append("./")
 
 import PySimpleGUI as sg  # noqa E402
 import sqlite3
@@ -21,15 +20,20 @@ departments = [element[0] for element in database("select id from Department").f
 sexes = [element[0] for element in database("select id from Sex").fetchall()]  # TODO
 
 
+sg.theme("Black")
 layout = [[sg.Text("Enter the following information for a new Employee record:", font=FONT)], [sg.VPush()]]
-print(Employee().columns[:10])
-for column in Employee().columns[:10]:
+print(Employee().columns[:9]) # 9 without birthdate (separate handling)
+for column in Employee().columns[:9]:
     layout.extend([[sg.Text(column.capitalize(), size=SIZE, font=FONT), sg.InputText(font=FONT)], [sg.VPush()]])
 
 
-# [sg.Text('Birth Date', size=(13, 1), font=("Courier", 18)), sg.InputText(font=("Courier", 18))], [sg.VPush()], 
-# [sg.Text('Department ID', size=(13, 1), font=("Courier", 18)), sg.InputText(font=("Courier", 18))], [sg.VPush()], 
-# [sg.Text('Sex', size=(13, 1), font=("Courier", 18)), sg.InputText(font=("Courier", 18))], [sg.VPush()],TODO SEPARATELY
+"""
+*Created on 29 Dec 2023.*   
+"""
+layout.extend([[sg.CalendarButton('Birth Date', font=FONT, format='%Y-%m-%d', close_when_date_chosen=True, target='Birth Date', location=(0,0), no_titlebar=True),
+               [sg.Input(key='Birth Date', size=(13, 1), font=("Courier", 18))]]]) # TODO DATE HANDLING
+layout.extend([[sg.Text('Department ID', size=SIZE, font=FONT), sg.Combo(departments, font=FONT)], [sg.VPush()]])
+layout.extend([[sg.Text('Sex', size=SIZE, font=FONT), sg.Combo(sexes, font=FONT)], [sg.VPush()]])
 layout.extend([[sg.Submit(key="-SUBMIT-", font=FONT)], [sg.VPush()]])
 
 
@@ -48,6 +52,7 @@ if event == "-SUBMIT-":
     print(emp)
     print(emp.tuple)
 
+    
     database("insert into Employee(SSN, first_name, middle_name, last_name, telephone, email, street, number,"
              "town, postal_code, birth_date, dept_id, sex) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
              emp.tuple)
