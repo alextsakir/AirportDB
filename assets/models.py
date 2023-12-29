@@ -3,8 +3,8 @@ enumerations: DatetimeFormat, CoordinateType, Quarter, Day
 
 classes: Coordinates, Rectangle, Airline, Employee, Airport, Schedule, Flight, Gate
 
-**NOTE: Python 3.11 required for typing.Self (PEP673), the pipe operator '|' (PEP604)
-and the match-case statement (PEP634 ~ PEP636)**
+**NOTE: Python 3.11 required for typing.Self (PEP 673), the pipe operator '|' (PEP 604)
+and the match-case statement (PEP 634 ~ PEP 636)**
 """
 
 __all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day",
@@ -16,15 +16,16 @@ __version__ = "1.3"
 from abc import abstractmethod, ABC
 from datetime import datetime as _dt, date as _date, timezone as _t_zone, timedelta as _timed
 from enum import Enum
+from functools import total_ordering as __total_order
 from math import sin, cos, sqrt, asin, radians, degrees, atan
 from random import choice as _ch, randint as _rand
 from sys import version_info, stderr as standard_error
-from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar
+from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar, Final
 
 if version_info >= (3, 11):
     from typing import Self
 else:
-    print(f"INCOMPATIBLE VERSION {version_info}, PLEASE USE PYTHON 3.11 OR HIGHER")
+    print(f"INCOMPATIBLE VERSION {version_info}, PLEASE USE PYTHON 3.11 OR HIGHER.")
 
 from assets.constants import *
 
@@ -96,9 +97,6 @@ class Quarter(_Enum):
             if char.upper() == _member.value[0] or char.lower() == _member.value[1]:
                 return _member
         return cls.UNKNOWN
-
-
-VALID_Q: str = Quarter.valid()  # -------------------------------------------------------------------------- NsSsEeWwUu
 
 
 class Day(_Enum):
@@ -248,11 +246,12 @@ class _DatabaseRecord(ABC, _HasTuple):
 # =====================================================================================================================
 
 
+@__total_order
 class Coordinate:
 
-    C_TYPE_REQUIRED: ClassVar[bool] = True
+    C_TYPE_REQUIRED: Final[bool] = True  # NOTE ------------------------- PEP 591: Final annotation means ClassVar also
 
-    __slots__: tuple[str] = "value", "type", "label"
+    __slots__: tuple[str] = "_value", "_type", "_label"
 
     @overload  # -------------------------------------------- Coordinate(-23.12) [insufficient] or Coordinate("23.12S")
     def __init__(self, value: Union[str, float, int] = None) -> NoReturn:
@@ -291,38 +290,38 @@ class Coordinate:
         *Created on Oct 9 2023.*
         """
 
-        self.value: float = 0.0
-        self.type: CoordinateType = CoordinateType.UNKNOWN
-        self.label: str = label if label else str()
+        self._value: float = 0.0
+        self._type: CoordinateType = CoordinateType.UNKNOWN
+        self._label: str = label if label else str()
 
         if quarter and isinstance(quarter, CoordinateType):  # FIXME: ---- any Enum member passed is treated as Quarter
             quarter, coord_type = None, quarter  # FIXME: ----------- is it because quarter is first in init arguments?
 
         if quarter and isinstance(quarter, Quarter):
-            self.type = quarter.value[2]
+            self._type = quarter.value[2]
         elif coord_type and isinstance(coord_type, CoordinateType):
-            self.type = coord_type
+            self._type = coord_type
 
         if value is None:
             raise AttributeError("Cannot create Coordinate object without specified value.")
         elif isinstance(value, float | int):
-            self.value = float(value)
+            self._value = float(value)
         elif isinstance(value, str):
             value = value.replace(" ", "")
-            assert value[-1] in VALID_Q
+            assert value[-1] in Quarter.valid()
             value = self.transform(value) if "o" in value else value
-            self.value = float(value[:-1])
-            if Quarter.get(value[-1]) == (Quarter.SOUTH or Quarter.WEST) and self.value > 0:
-                self.value = -self.value
-            self.type = Quarter.get(value[-1]).value[2]
+            self._value = float(value[:-1])
+            if Quarter.get(value[-1]) == (Quarter.SOUTH or Quarter.WEST) and self._value > 0:
+                self._value = -self._value
+            self._type = Quarter.get(value[-1]).value[2]
         else:
             raise AttributeError(f"value of type {type(value)} is not accepted.")
 
-        if self.type == CoordinateType.LATITUDINAL and abs(self) > MAX_DEGREE_LAT:
+        if self._type == CoordinateType.LATITUDINAL and abs(self) > MAX_DEGREE_LAT:
             raise AttributeError(f"Degrees must be under {MAX_DEGREE_LAT}.")
-        elif self.type == CoordinateType.LONGITUDINAL and abs(self) > MAX_DEGREE_LONG:
+        elif self._type == CoordinateType.LONGITUDINAL and abs(self) > MAX_DEGREE_LONG:
             raise AttributeError(f"Degrees must be under {MAX_DEGREE_LONG}.")
-        elif self.type == CoordinateType.UNKNOWN and self.C_TYPE_REQUIRED:
+        elif self._type == CoordinateType.UNKNOWN and self.C_TYPE_REQUIRED:
             raise AttributeError("Coordinate Type not specified.")
         return
 
@@ -342,59 +341,51 @@ class Coordinate:
     # =============================================================================================================
 
     def __str__(self) -> str:
-        return " ".join([self.label + ":" if len(self.label) else str(), str(abs(self))[:8], self.quarter.value[0]])
+        return " ".join([self._label + ":" if len(self._label) else str(), str(abs(self))[:8], self.quarter.value[0]])
 
     def __int__(self) -> int:
-        return int(self.value)
+        return int(self._value)
 
     def __float__(self) -> float:
-        return self.value
+        return self._value
 
     def __abs__(self) -> float:
-        return abs(self.value)
+        return abs(self._value)
 
     def __lt__(self, other: Self) -> bool:
-        return self.value < other.value
-
-    def __gt__(self, other: Self) -> bool:
-        return self.value > other.value
-
-    def __le__(self, other: Self) -> bool:
-        return self.value <= other.value
-
-    def __ge__(self, other: Self) -> bool:
-        return self.value >= other.value
+        # __gt__, __le__ and __ge__ are automatically implemented by functools.total_ordering
+        return self._value < other._value
 
     def __eq__(self, other: Self) -> bool:
-        if self.value != other.value:
+        if self._value != other._value:
             return False
-        return (self.type == other.type and self.value != 0) or self.value
+        return (self._type == other._type and self._value != 0) or self._value
 
     def __add__(self, other: Self) -> Union[Self, float]:
-        if self.type == other.type:
-            return self.__class__(value=self.value + other.value, coord_type=self.type)
-        return sqrt(self.value ** 2 + other.value ** 2)
+        if self._type == other._type:
+            return self.__class__(value=self._value + other._value, coord_type=self._type)
+        return sqrt(self._value ** 2 + other._value ** 2)
 
     def __sub__(self, other: Self) -> Optional[Self]:
-        if self.type == other.type:
-            return self.__class__(value=self.value - other.value, coord_type=self.type)
+        if self._type == other._type:
+            return self.__class__(value=self._value - other._value, coord_type=self._type)
         return None
 
     def __truediv__(self, other: Self) -> float:
-        return self.value / other.value
+        return self._value / other._value
 
     @property
     def is_zero(self) -> bool:
-        return not bool(self.value)
+        return not bool(self._value)
 
     # =============================================================================================================
 
     @property
     def quarter(self) -> Quarter:
-        if self.type == CoordinateType.LATITUDINAL:
-            return Quarter.NORTH if self.value >= 0 else Quarter.SOUTH
-        elif self.type == CoordinateType.LONGITUDINAL:
-            return Quarter.EAST if self.value >= 0 else Quarter.WEST
+        if self._type == CoordinateType.LATITUDINAL:
+            return Quarter.NORTH if self._value >= 0 else Quarter.SOUTH
+        elif self._type == CoordinateType.LONGITUDINAL:
+            return Quarter.EAST if self._value >= 0 else Quarter.WEST
         return Quarter.UNKNOWN
 
     @staticmethod
@@ -491,7 +482,7 @@ class Coordinates:
         self.label: str = label if label else str()
 
         if isinstance(x, Coordinate) and isinstance(y, Coordinate):
-            x.type, y.type = CoordinateType.LATITUDINAL, CoordinateType.LONGITUDINAL
+            x._type, y._type = CoordinateType.LATITUDINAL, CoordinateType.LONGITUDINAL
             self.lat, self.long = x, y
         elif isinstance(x, Union[float, int]) and isinstance(y, Union[float, int]):
             self.lat = Coordinate(value=x, coord_type=CoordinateType.LATITUDINAL)
@@ -530,6 +521,9 @@ class Coordinates:
             elif item == "long" or item == "longitude":
                 return self.long
         return None
+
+    def __delattr__(self, name):
+        raise AttributeError()
 
     # =================================================================================================================
 
@@ -1222,7 +1216,6 @@ class Gate:
 
 if __name__ == "__main__":
     gamma = Coordinate(0, CoordinateType.LATITUDINAL)
-    alpha = Coordinate(0, CoordinateType.LATITUDINAL)
+    alpha = Coordinate(4, CoordinateType.LATITUDINAL)
 
-    for member in Day:
-        print(member)
+    print(alpha >= gamma)
