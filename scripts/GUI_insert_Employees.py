@@ -2,57 +2,69 @@
 *Created on 27 Dec 2023.*
 """
 
-import sys
-sys.path.append("./") # DO NOT TOUCH OTHERWISE VSCODE USERS CRYY :( 
+from ctypes import windll
+from sys import path
+path.append("./")  # DO NOT TOUCH OTHERWISE VSCODE USERS CRY :( ----------------------------------------- IT'S PATHETIC
 
-from assets.constants import DATABASE
-
-import PySimpleGUI as sg  # noqa E402
-import sqlite3
+import PySimpleGUI as gui  # noqa E402
 
 from assets import *  # noqa E402
 
-SIZE = 13, 1
-FONT = ("Courier", 18)
-
+SCREEN = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)  # NOTE -- parameterize window dimensions
+PAD_X, PAD_Y = SCREEN[0] // 5, SCREEN[1] // 10
+WINDOW_SIZE, WINDOW_LOCATION = (SCREEN[0] - 2 * PAD_X, SCREEN[1] - 2 * PAD_Y), (PAD_X, PAD_Y)  # NOTE ---- center align
+SIZE, FONT = (13, 1), ("Courier", 18)
 
 departments = [element[0] for element in database("select id from Department").fetchall()]
 sexes = [element[0] for element in database("select id from Sex").fetchall()]  # TODO
 
+gui.theme("Black")
 
-sg.theme("Black")
-layout = [[sg.Text("Enter the following information for a new Employee record:", font=FONT)], [sg.VPush()]]
-print(Employee().columns[:9]) # 9 without birthdate (separate handling)
-for column in Employee().columns[:9]:
-    layout.extend([[sg.Text(column.capitalize(), size=SIZE, font=FONT), sg.InputText(font=FONT)], [sg.VPush()]])
+layout = [[gui.Text("Enter the following information for a new Employee record:", font=FONT)], [gui.VPush()]]
+print(Employee().columns[:10])  # 9 without birthdate (separate handling) NOTE ----------------- you forgot postal_code
+for column in Employee().columns[:10]:
+    layout.extend([[gui.Text(column.capitalize(), size=SIZE, font=FONT), gui.InputText(font=FONT)], [gui.VPush()]])
 
+layout.extend([[gui.CalendarButton('Birth Date', font=FONT, format='%Y-%m-%d', close_when_date_chosen=True,
+                                   target='Birth Date', location=(PAD_X * 1.2, PAD_Y * 7)),
+               [gui.Input(key='Birth Date', size=SIZE, font=FONT)]]])  # TODO DATE HANDLING
 
-"""
-*Created on 29 Dec 2023.*   
-"""
-layout.extend([[sg.CalendarButton('Birth Date', font=FONT, format='%Y-%m-%d', close_when_date_chosen=True, target='Birth Date', location=(0,0), no_titlebar=True),
-               [sg.Input(key='Birth Date', size=(13, 1), font=("Courier", 18))]]]) # TODO DATE HANDLING
-layout.extend([[sg.Text('Department ID', size=SIZE, font=FONT), sg.Combo(departments, font=FONT)], [sg.VPush()]])
-layout.extend([[sg.Text('Sex', size=SIZE, font=FONT), sg.Combo(sexes, font=FONT)], [sg.VPush()]])
-layout.extend([[sg.Submit(key="-SUBMIT-", font=FONT)], [sg.VPush()]])
+# layout.extend([[gui.Text('Department ID', size=SIZE, font=FONT), gui.Combo(departments, font=FONT)], [gui.VPush()]])
+layout.extend([[gui.Text('Department ID', size=SIZE, font=FONT),
+                gui.Slider(font=FONT, orientation="horizontal", range=(departments[0], departments[-1]),
+                           default_value=departments[0])],
+               [gui.VPush()]])
 
+layout.extend([[gui.Text('Sex', size=SIZE, font=FONT), gui.Combo(sexes, font=FONT)], [gui.VPush()]])
+layout.extend([[gui.Submit(key="-SUBMIT-", font=FONT)], [gui.VPush()]])
 
-window = sg.Window("Data Entry Form", layout)
-print("LAYOUT:", len(layout))
+''' :param right_click_menu:            A list of lists of Menu items to show when this element is right clicked.
+    :type right_click_menu:             List[List[ List[str] | str ]] '''  # -------------------- copied from docstring
+CONTEXT_MENU: list[list[list[str] | str]] = [["first"], ["second"], ["third"]]  # fixme
+window = gui.Window("Data Entry Form", location=WINDOW_LOCATION, size=WINDOW_SIZE, element_justification="center",
+                    right_click_menu=CONTEXT_MENU, layout=layout, finalize=True)
+window.bind('<F1>', 'Birth Date')
+
+# print("LAYOUT:", len(layout))
 
 event, values = window.read()
+try:
+    if "Birth Date" in values and "Birth Date0" in values:  # NOTE --------------------------------------- bad solution
+        values.pop("Birth Date0")
+except KeyError:
+    pass
 values = list(values.values())
 window.close()
-""" Here the GUI handles the registers and inserts them into the database """         # RUNS BUT DOESNT INSERT INTO DB
+# Here the GUI handles the registers and inserts them into the database TODO ----------------- RUNS BUT DOES NOT INSERT
 if event == "-SUBMIT-":
-    if values[0] is None or values[1] is None or values[3] is None:
+    if (not values[0] or not values[1] or not values[3]) and False:  # ---------------- remove 'and False' to enable it
         raise AttributeError("SSN, FirstName, LastName can't be NULL")
 
+    print(values)
     emp = Employee(*values)
     print(emp)
     print(emp.tuple)
 
-    
     database("insert into Employee(SSN, first_name, middle_name, last_name, telephone, email, street, number,"
              "town, postal_code, birth_date, dept_id, sex) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
              emp.tuple)
