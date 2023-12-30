@@ -72,17 +72,17 @@ class Database:
 
     def __call__(self, __sql: str, __parameters: Any = ()) -> Union[_sql.Cursor, _sql.DatabaseError]:
         """
-        Same as Database.execute().
+        Calls Database._execute().
         """
-        return self.execute(__sql, __parameters)
+        return self._execute(__sql, __parameters)
 
-    def execute(self, __sql: str, __parameters: Any = ()) -> Union[_sql.Cursor, _sql.DatabaseError]:
+    def _execute(self, __sql: str, __parameters: Any = ()) -> Union[_sql.Cursor, _sql.DatabaseError]:
         if "drop" in __sql:
             raise AttributeError("Table deletion is not permitted")
         try:
             self._cursor.execute(__sql, __parameters)
             if self._DEBUG:
-                print("QUERY EXECUTED:", __sql)
+                print("QUERY EXECUTED", __sql, "WITH PARAMETERS", __parameters)
             self.__class__._QUERY_COUNTER += 1
             return self._cursor
         except _sql.DatabaseError as error:
