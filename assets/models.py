@@ -16,7 +16,7 @@ __version__ = "1.3"
 from abc import abstractmethod, ABC
 from datetime import datetime as _dt, date as _date, timezone as _t_zone, timedelta as _timed
 from enum import Enum
-from functools import cached_property, total_ordering as __total_order
+from functools import total_ordering as __total_order
 from math import sin, cos, sqrt, asin, radians, degrees, atan
 from random import choice as _ch, randint as _rand
 from sys import version_info, stderr as standard_error
@@ -156,7 +156,7 @@ class _HasTuple:
 
     __slots__: tuple[str] = ()
 
-    @cached_property
+    @property
     def columns(self) -> tuple[str, ...]:
 
         _columns: list = []
@@ -168,7 +168,7 @@ class _HasTuple:
                 _columns.append(_slot)
         return tuple(_columns)
 
-    @cached_property
+    @property
     def tuple(self) -> tuple:
         """
         Returns a tuple containing values from slot attributes of the object.
@@ -187,7 +187,7 @@ class _HasTuple:
 
 class _Composite(_HasTuple):
 
-    @cached_property
+    @property
     def complete(self) -> bool:
         for _slot in self.__slots__:
             if getattr(self, _slot) is (str() or None):
@@ -777,32 +777,31 @@ class Employee(_DatabaseRecord):
         __slots__: tuple[str] = "telephone", "email"
 
         def __init__(self, telephone: str | int = str(), email: str = str()) -> NoReturn:
-            self.telephone: str = str(telephone) if isinstance(telephone, int) else str()
-            self.email: str = email if isinstance(email, str) else str()
+            self.telephone: str = str(telephone) if isinstance(telephone, int) else telephone
+            self.email: str = email
             return
 
         def __str__(self) -> str:
             return self._telephone + " " * 5 + self.email
 
-        @cached_property
+        @property
         def _telephone(self) -> str:
             _list = [str(self.telephone)[0: 3], str(self.telephone)[3: 6], str(self.telephone)[6:]]
-            return "+30_" + str("_").join(_list)
+            return str() if not len(self.telephone) else "+30_" + str("_").join(_list)
 
         def __setattr__(self, key: str, value: Optional[str]) -> NoReturn:
-            if not value:
-                return
-            value = value.replace(" ", "")
-            if key == "telephone":
-                value = value.replace("_", "").replace("-", "").replace("+", "")
-                if len(value) != 10 or not value.isnumeric():
-                    raise ValueError(f"{value} IS NOT VALID, PLEASE ENTER A {key.upper()} WITH 10 DIGITS.")
-            elif key == "email":
-                if value.count("@") != 1 or not value.endswith((".gr", ".com")):
-                    raise ValueError(f"EMAIL ADDRESS {value} IS NOT VALID.")
-                for char in value:
-                    if ord(char) > 122:
-                        raise UnicodeError(f"EMAIL ADDRESS {value} HAS INVALID CHARACTERS.")
+            if value:
+                value = value.replace(" ", "")
+                if key == "telephone":
+                    value = value.replace("_", "").replace("-", "").replace("+", "")
+                    if len(value) != 10 or not value.isnumeric():
+                        raise ValueError(f"{value} IS NOT VALID, PLEASE ENTER A {key.upper()} WITH 10 DIGITS.")
+                elif key == "email":
+                    if value.count("@") != 1 or not value.endswith((".gr", ".com")):
+                        raise ValueError(f"EMAIL ADDRESS {value} IS NOT VALID.")
+                    for char in value:
+                        if ord(char) > 122:
+                            raise UnicodeError(f"EMAIL ADDRESS {value} HAS INVALID CHARACTERS.")
             object.__setattr__(self, key, value)
 
     class Address(_Composite):
@@ -957,7 +956,7 @@ class Airport(_DatabaseRecord):
         def headers() -> str:
             pass
 
-        @cached_property
+        @property
         def direction(self) -> int:
             """
             Returns runway direction in deca-degrees, as declared in its name.

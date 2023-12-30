@@ -2,43 +2,36 @@
 *Created on 27 Dec 2023.*
 """
 
-import sys
-sys.path.append("./") # DO NOT TOUCH OTHERWISE VSCODE USERS CRYY :( 
+from sys import path
+path.append("./")  # DO NOT TOUCH OTHERWISE VSCODE USERS CRY :( ---------------------------------------------- PATHETIC
 
-from assets.constants import DATABASE
-
-import PySimpleGUI as sg  # noqa E402
-import sqlite3
+import PySimpleGUI as gui  # noqa E402
 
 from assets import *  # noqa E402
 
-SIZE = 13, 1
-FONT = ("Courier", 18)
-
+SIZE, FONT = (13, 1), ("Courier", 18)
 
 departments = [element[0] for element in database("select id from Department").fetchall()]
 sexes = [element[0] for element in database("select id from Sex").fetchall()]  # TODO
 
 
-sg.theme("Black")
-layout = [[sg.Text("Enter the following information for a new Employee record:", font=FONT)], [sg.VPush()]]
-print(Employee().columns[:9]) # 9 without birthdate (separate handling)
-for column in Employee().columns[:9]:
-    layout.extend([[sg.Text(column.capitalize(), size=SIZE, font=FONT), sg.InputText(font=FONT)], [sg.VPush()]])
+gui.theme("Black")
+layout = [[gui.Text("Enter the following information for a new Employee record:", font=FONT)], [gui.VPush()]]
+print(Employee().columns[:10])  # 9 without birthdate (separate handling)
+for column in Employee().columns[:10]:
+    layout.extend([[gui.Text(column.capitalize(), size=SIZE, font=FONT), gui.InputText(font=FONT)], [gui.VPush()]])
+
+layout.extend([[gui.CalendarButton('Birth Date', font=FONT, format='%Y-%m-%d', close_when_date_chosen=True,
+                                   target='Birth Date', location=(550, 700)),
+               [gui.Input(key='Birth Date', size=SIZE, font=FONT)]]])  # TODO DATE HANDLING
+layout.extend([[gui.Text('Department ID', size=SIZE, font=FONT), gui.Combo(departments, font=FONT)], [gui.VPush()]])
+layout.extend([[gui.Text('Sex', size=SIZE, font=FONT), gui.Combo(sexes, font=FONT)], [gui.VPush()]])
+layout.extend([[gui.Submit(key="-SUBMIT-", font=FONT)], [gui.VPush()]])
 
 
-"""
-*Created on 29 Dec 2023.*   
-"""
-layout.extend([[sg.CalendarButton('Birth Date', font=FONT, format='%Y-%m-%d', close_when_date_chosen=True, target='Birth Date', location=(0,0), no_titlebar=True),
-               [sg.Input(key='Birth Date', size=(13, 1), font=("Courier", 18))]]]) # TODO DATE HANDLING
-layout.extend([[sg.Text('Department ID', size=SIZE, font=FONT), sg.Combo(departments, font=FONT)], [sg.VPush()]])
-layout.extend([[sg.Text('Sex', size=SIZE, font=FONT), sg.Combo(sexes, font=FONT)], [sg.VPush()]])
-layout.extend([[sg.Submit(key="-SUBMIT-", font=FONT)], [sg.VPush()]])
-
-
-window = sg.Window("Data Entry Form", layout)
-print("LAYOUT:", len(layout))
+window = gui.Window("Data Entry Form", location=(450, 100), size=(1020, 800), element_justification="center",
+                    titlebar_background_color="#4A4A4A", layout=layout)
+# print("LAYOUT:", len(layout))
 
 event, values = window.read()
 values = list(values.values())
@@ -52,7 +45,6 @@ if event == "-SUBMIT-":
     print(emp)
     print(emp.tuple)
 
-    
     database("insert into Employee(SSN, first_name, middle_name, last_name, telephone, email, street, number,"
              "town, postal_code, birth_date, dept_id, sex) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
              emp.tuple)

@@ -85,7 +85,7 @@ class Database:
             self.__class__._QUERY_COUNTER += 1
             return self._cursor
         except _sql.DatabaseError as error:
-            print("Failed to execute the above query", error)
+            print("Failed to execute query. SQLite message:", error)
             return error
 
     def commit_save(self) -> NoReturn:
