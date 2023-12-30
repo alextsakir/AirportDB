@@ -13,7 +13,7 @@ for i in range(10):
 other = database("select id from Airport where IATA = 'CTA'").fetchone()[0]
 record = database.random_schedule("A3", other)
 print(record)
-database.execute("insert into Schedule(code, from_airport, to_airport, departure, arrival, days, modified, "
-                 "active, occurrences) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                 (record.code, record.from_airport, record.to_airport, record.departure, record.arrival,
-                  record.days, record.modified, record.active, record.occurrences))
+database("insert into Schedule(code, from_airport, to_airport, departure, arrival, days, modified, "
+         "active, occurrences) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+         (record.code, record.from_airport, record.to_airport, record.departure, record.arrival,
+          record.days, record.modified, record.active, record.occurrences))
