@@ -344,9 +344,17 @@ class Database:
         return self("select * from ?", (table_name,)).fetchall()
 
     def random_airport_id(self) -> int:
+        """
+        Returns a random airport id, chosen from database.
+        :return: int
+        """
         return _ch(self.table_tuples("Airport"))[0]
 
     def random_airline_designator(self) -> str:
+        """
+        Returns a random airline designator, chosen from database.
+        :return: int
+        """
         return _ch(self.table_tuples("Airline"))[2]
 
     def schedules(self) -> str:
