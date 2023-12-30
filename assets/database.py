@@ -17,6 +17,7 @@ class Database:
 
     _MONTH: ClassVar[tuple[int, int]] = 2024, 2
     _DEBUG: ClassVar[bool] = False
+    _PRINT_QUERIES: ClassVar[bool] = False
     _EXISTS: ClassVar[bool] = False
     _QUERY_COUNTER: ClassVar[int] = 0
     _SCHEDULE_START: ClassVar[_date] = _date(*_MONTH, 1)
@@ -35,15 +36,18 @@ class Database:
         cls._EXISTS = True
         return super().__new__(cls)
 
-    def __init__(self, path: str, name: Optional[str] = "AIRPORT", debug: Optional[bool] = False) -> NoReturn:
+    def __init__(self, path: str, name: Optional[str] = "AIRPORT", debug: Optional[bool] = False,
+                 print_queries: Optional[bool] = False) -> NoReturn:
         """
         Pass debug=True to have debugging information displayed.
+        Pass print_queries=True to have queries printed.
         """
         self._name: str = name
         self._connection: _sql.Connection = _sql.Connection(path)
         self._cursor: _sql.Cursor = self._connection.cursor()
-        Database.Tables = Enum("Tables", [(_table.upper(), _table) for _table in self.tables])  # NOTE
+        Database.Tables = Enum("Tables", [(_table.upper(), _table) for _table in self.tables])  # NOTE ----- DEPRECATED
         Database._DEBUG = debug
+        Database._PRINT_QUERIES = print_queries
         if self._DEBUG:
             print(f"{self._name} DATABASE CONNECTED")
         return
@@ -81,12 +85,12 @@ class Database:
             raise AttributeError("Table deletion is not permitted")
         try:
             self._cursor.execute(__sql, __parameters)
-            if self._DEBUG:
+            if self._PRINT_QUERIES:
                 print("QUERY EXECUTED", __sql, "WITH PARAMETERS", __parameters)
             self.__class__._QUERY_COUNTER += 1
             return self._cursor
         except _sql.DatabaseError as error:
-            print("Failed to execute query. SQLite message:", error)
+            print("Failed to execute query. SQLite said:", error)
             return error
 
     def commit_save(self) -> NoReturn:
@@ -321,7 +325,7 @@ class Database:
 
 database: Optional[Database] = None
 try:
-    database = Database(DATABASE, debug=True)  # NOTE ----------------------------------------------- toggle debug info
+    database = Database(DATABASE, debug=True, print_queries=True)  # NOTE -------- toggle debug info and query printing
 except _sql.OperationalError:
     print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
 
