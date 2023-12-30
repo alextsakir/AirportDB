@@ -153,12 +153,19 @@ class Day(_Enum):
 # =====================================================================================================================
 
 class _HasTuple:
+    """
+    Protected class to be inherited, with no any instance attributes. Implements ``columns`` property that returns
+    a tuple containing instance attribute names and ``tuple`` property that returns a tuple containing instance
+    attribute values. Both methods access attributes at the same order they'll be declared at child ``__slots__`` tuple.
+    """
 
     __slots__: tuple[str] = ()
 
     @property
     def columns(self) -> tuple[str, ...]:
-
+        """
+        Returns a tuple containing attributes names from the object's ``__slots__``.
+        """
         _columns: list = []
         for _slot in self.__slots__:
             _attr = object.__getattribute__(self, _slot)
@@ -171,7 +178,7 @@ class _HasTuple:
     @property
     def tuple(self) -> tuple:
         """
-        Returns a tuple containing values from slot attributes of the object.
+        Returns a tuple containing values from the object's ``__slots__``.
 
         *Created on Dec 26 2023.*
         """
@@ -179,13 +186,22 @@ class _HasTuple:
         for _slot in self.__slots__:
             _attr = object.__getattribute__(self, _slot)
             if hasattr(_attr, "tuple"):  # FIXME
-                _data.extend([*_attr.tuple])
+                _data.extend([*_attr.tuple])  # NOTE recursion
+            elif isinstance(_slot, _dt):
+                _data.append(object.__getattribute__(self, _slot.strftime(DatetimeFormat.DATETIME.value)))
+            elif isinstance(_slot, _date):
+                _data.append(object.__getattribute__(self, _slot.strftime(DatetimeFormat.DATE.value)))
             else:
                 _data.append(object.__getattribute__(self, _slot))
         return tuple(_data)
 
 
 class _Composite(_HasTuple):
+    """
+    Protected class to be inherited at ``models.Schedule`` inner classes, inherits from ``_HasTuple``. ``_Composite``
+    implements a property named ``complete`` that boolean value indicating if all the instance attributes are not None
+    and not empty string.
+    """
 
     @property
     def complete(self) -> bool:
@@ -202,7 +218,7 @@ class _DatabaseRecord(ABC, _HasTuple):
     @abstractmethod
     def __init__(self, *args, **kwargs) -> NoReturn:
         """
-        Abstract class to be inherited by classes depicting database records that contains:
+        Protected abstract class to be inherited by classes depicting database records that contains:
 
         ``db(args: tuple)``: class method used to create child-class instances by arguments in a tuple,
         at the same order they are stored in the database.
@@ -926,7 +942,7 @@ class Employee(_DatabaseRecord):
         """*Created on 9 Nov 2023.*"""
         if cls._load_files() == -1:
             print(f"COULD NOT GENERATE RANDOM TUPLE", file=standard_error)
-            return
+            return None
         _data = [cls._random_ssn(), _ch(cls.FIRST_NAMES), _ch(cls.FIRST_NAMES), _ch(cls.LAST_NAMES)]
         _telephone: str = "+30 694 " + str().join([str(_rand(0, 9)) for _ in range(3)]) + " "
         _telephone += str().join([str(_rand(0, 9)) for _ in range(4)])
