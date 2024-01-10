@@ -251,21 +251,23 @@ class Database:
 
         for date in self._dates:
             current_day: models.Day = models.Day.day(date)
-            if current_day in _s.days:
-                if self._DEBUG:
-                    _counter += 1
-                    print(date, current_day, current_day in _s.days)
-                _data = [_s.code, _s.from_airport, _s.to_airport]
-                if _s.is_departure:
-                    _data.append(_dt(date.year, date.month, date.day, *_time))
-                if _s.is_arrival:
-                    _data.append(_dt(date.year, date.month, date.day, *_time))
-                _data.extend([None, _rand(1, 40)])  # NOTE --------------------- state column will be filled separately
-                _gate = models.Gate.random()
-                _data.extend([_gate.number, _gate.terminal, _ch(_airplanes)[0]])
+            if current_day not in _s.days:
+                continue
+            if self._DEBUG:
+                _counter += 1
+                print(date, current_day, current_day in _s.days)
+            _data = [_s.code, _s.from_airport, _s.to_airport]
+            if _s.is_departure:
+                _data.append(_dt(date.year, date.month, date.day, *_time))
+            if _s.is_arrival:
+                _data.append(_dt(date.year, date.month, date.day, *_time))
+            check_in: int = _rand(0, 40) if _s.is_departure else None
+            _data.extend([None, check_in])  # NOTE ----------------------------- state column will be filled separately
+            _gate = models.Gate.random()
+            _data.extend([_gate.number, _gate.terminal, _ch(_airplanes)[0]])
 
-                if self._DEBUG:
-                    print(_data)
+            if self._DEBUG:
+                print(_data)
 
                 '''
                 _query = (f"insert into Flight (code, from_airport, to_airport, departure, arrival, state,"
@@ -279,9 +281,6 @@ class Database:
                 arrival = ("insert into Flight (code, from_airport, to_airport, arrival, state, "
                            "check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
                 _query = departure if _s.is_departure else arrival if _s.is_arrival else None
-                # _query = "insert into Flight (code, from_airport, to_airport, "  # noqa
-                # _query += "departure, " if _s.is_departure else "arrival, "
-                # _query += "state, check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 self._cursor.execute(_query, _data)
 
             _report.append(str(_data))
