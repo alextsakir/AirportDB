@@ -51,7 +51,7 @@ class Database:
         return
 
     def __str__(self) -> str:
-        raise NotImplementedError
+        return self._name + "database"
 
     def __enter__(self) -> Self:
         raise NotImplementedError  # TODO
@@ -74,12 +74,6 @@ class Database:
 
     def __call__(self, __sql: str, __parameters: Any = ()) -> Union[_sql.Cursor, _sql.DatabaseError]:
         """
-        Calls Database._execute().
-        """
-        return self._execute(__sql, __parameters)
-
-    def _execute(self, __sql: str, __parameters: Any = ()) -> Union[_sql.Cursor, _sql.DatabaseError]:
-        """
         Executes SQL query and returns cursor. Signature is taken from sqlite3.Cursor.execute().
         :param __sql:
         :param __parameters:
@@ -101,7 +95,7 @@ class Database:
     def commit_close(self) -> NoReturn:
         """
         By calling ``Connection commit()`` and ``close()``, commits any pending transaction to the database and closes
-        the connection.
+        the connection. THis is automatically done by database.__del__ method at the end of each script execution.
         :return: None
         """
         self._connection.commit()
@@ -138,6 +132,26 @@ class Database:
         if table_name not in self.tables:
             raise AttributeError(f"No table named {table_name} exists, check your spelling.")
         return self("pragma table_info(?)", (table_name,)).fetchall()
+
+    def random_department(self) -> int:
+        return _ch(self("select id from Department").fetchall())[0]
+
+    def random_sex(self) -> int:
+        return _ch(self("select id from Sex").fetchall())[0]
+
+    def random_employee(self) -> Optional[tuple]:
+        """*Created on 9 Nov 2023.*"""
+        models.Employee.load_files()
+        _data = [models.Employee.random_ssn(), _ch(models.Employee.FIRST_NAMES),
+                 _ch(models.Employee.FIRST_NAMES), _ch(models.Employee.LAST_NAMES)]
+        _telephone: str = "+30 694 " + str().join([str(_rand(0, 9)) for _ in range(3)]) + " "
+        _telephone += str().join([str(_rand(0, 9)) for _ in range(4)])
+        _birth = _date(_rand(*models.Employee.YEAR_RANGE), _rand(1, 12), _rand(1, 28))
+        _data.extend([_telephone, models.Employee.generate_email(_data[1], _data[3], _birth),
+                      _ch(models.Employee.STREETS), _rand(1, 75)])
+        _data.extend([_ch(models.Employee.TOWNS), _rand(10_000, 19_900), str(_birth)])
+        _data.extend([self.random_department(), self.random_sex()])
+        return tuple(_data)
 
     @property
     def _dates(self) -> GeneratorType:

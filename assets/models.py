@@ -123,7 +123,7 @@ class Day(_Enum):
 
     @classmethod
     def every_day(cls) -> list[Self]:
-        return [Day.SUNDAY, Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY]
+        return cls.monday_to_friday() + cls.saturday_sunday()
 
     @classmethod
     def monday_to_friday(cls) -> list[Self]:
@@ -135,11 +135,11 @@ class Day(_Enum):
 
     @classmethod
     def days_to_code(cls, days: list[Self]) -> int:
-        _code = ["0" for _ in range(7)]
+        _code = ["0" for _ in range(7)]  # seven-digit binary number
         for day in days:
             if day in days:
-                _code[day.value[0]] = "1"
-        return int(str().join(_code), 2)
+                _code[day.value[0]] = "1"  # change bits
+        return int(str().join(_code), 2)  # return integer version of _code
 
     @classmethod
     def code_to_days(cls, number: int) -> list[Self]:
@@ -185,14 +185,16 @@ class _HasTuple:
         _data: list = []
         for _slot in self.__slots__:
             _attr = object.__getattribute__(self, _slot)
-            if hasattr(_attr, "tuple"):  # FIXME
+            if hasattr(_attr, "tuple"):
                 _data.extend([*_attr.tuple])  # NOTE recursion
-            elif isinstance(_slot, _dt):
-                _data.append(object.__getattribute__(self, _slot.strftime(DatetimeFormat.DATETIME.value)))
-            elif isinstance(_slot, _date):
-                _data.append(object.__getattribute__(self, _slot.strftime(DatetimeFormat.DATE.value)))  # fixme
+            elif isinstance(_attr, _dt):
+                print("models tuple in datetime")
+                _data.append(_attr.strftime(DatetimeFormat.DATETIME.value))
+            elif isinstance(_attr, _date):
+                print("models tuple in date")
+                _data.append(_attr.strftime(DatetimeFormat.DATE.value))
             else:
-                _data.append(object.__getattribute__(self, _slot))
+                _data.append(_attr)
         return tuple(_data)
 
 
@@ -809,11 +811,11 @@ class Employee(_DatabaseRecord):
             if value:
                 value = value.replace(" ", "")
                 if key == "telephone":
-                    value = value.replace("_", "").replace("-", "").replace("+", "")
+                    value = value.replace("_", "").replace("-", "").replace("+30", "")
                     if len(value) != 10 or not value.isnumeric():
                         raise ValueError(f"{value} IS NOT VALID, PLEASE ENTER A {key.upper()} WITH 10 DIGITS.")
                 elif key == "email":
-                    if value.count("@") != 1 or not value.endswith((".gr", ".com")):
+                    if value.count("@") != 1 or not value.endswith((".gr", ".com", ".me")):
                         raise ValueError(f"EMAIL ADDRESS {value} IS NOT VALID.")
                     for char in value:
                         if ord(char) > 122:
@@ -846,7 +848,7 @@ class Employee(_DatabaseRecord):
     _LOADED_NAMES: bool = False
 
     @classmethod
-    def _load_files(cls) -> int:
+    def load_files(cls) -> int:
         """*Created on 9 Nov 2023.*"""
         if cls._LOADED_NAMES:
             return 0
@@ -872,12 +874,6 @@ class Employee(_DatabaseRecord):
 
     __slots__: tuple[str] = "ssn", "name", "contact", "address", "birth_date", "dept_id", "sex"
 
-    @classmethod
-    def random(cls) -> Optional[Self]:
-        """Alternative factory method, creates and returns random Employee object."""
-        random_tuple: tuple = cls.random_tuple()
-        return cls(*random_tuple) if random_tuple is not None else None
-
     def __init__(self, ssn: Optional[int] = None,
                  first: Optional[str] = None, middle: Optional[str] = None, last: Optional[str] = None,
                  telephone: Optional[str] = None, email: Optional[str] = None,
@@ -900,6 +896,7 @@ class Employee(_DatabaseRecord):
 
         if ssn and len(str(ssn)) != 9:
             raise AttributeError(f"SSN must have exactly 9 digits, {ssn} has {len(str(ssn))}, fix it and try again.")
+        self.load_files()
         return
 
     def __str__(self) -> str:
@@ -923,7 +920,7 @@ class Employee(_DatabaseRecord):
         return _dir
 
     @staticmethod
-    def _random_ssn() -> int:
+    def random_ssn() -> int:
         return int(str().join([str(_rand(1, 9)) for _ in range(9)]))
 
     @classmethod
@@ -936,20 +933,6 @@ class Employee(_DatabaseRecord):
             case 3 | 4 | 5: _user += str(birth_date.year)
             case 6 | 7: _user = _ch(cls.COMMON_WORDS) + _ch(["_", "-", ".", ""]) + _user
         return _user + "@" + _ch(cls.DOMAINS) if len(_user) > 10 else cls.generate_email(first, last, birth_date)
-
-    @classmethod
-    def random_tuple(cls) -> Optional[tuple]:
-        """*Created on 9 Nov 2023.*"""
-        if cls._load_files() == -1:
-            print(f"COULD NOT GENERATE RANDOM TUPLE", file=standard_error)
-            return None
-        _data = [cls._random_ssn(), _ch(cls.FIRST_NAMES), _ch(cls.FIRST_NAMES), _ch(cls.LAST_NAMES)]
-        _telephone: str = "+30 694 " + str().join([str(_rand(0, 9)) for _ in range(3)]) + " "
-        _telephone += str().join([str(_rand(0, 9)) for _ in range(4)])
-        _birth = _date(_rand(*cls.YEAR_RANGE), _rand(1, 12), _rand(1, 28))
-        _data.extend([_telephone, cls.generate_email(_data[1], _data[3], _birth), _ch(cls.STREETS), _rand(1, 75)])
-        _data.extend([_ch(cls.TOWNS), _rand(10_000, 19_900), str(_birth), 0, 2])
-        return tuple(_data)
 
 
 class Airport(_DatabaseRecord):
