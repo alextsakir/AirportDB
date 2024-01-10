@@ -26,7 +26,7 @@ print(Employee().columns[:10])  # 9 without birthdate (separate handling) NOTE -
 for column in Employee().columns[:10]:
     layout.extend([[gui.Text(column.capitalize(), size=SIZE, font=FONT), gui.InputText(font=FONT)], [gui.VPush()]])
 
-layout.extend([[gui.CalendarButton('Birth Date', font=FONT, format='%Y-%m-%d', close_when_date_chosen=True,
+layout.extend([[gui.CalendarButton('Birth Date', font=FONT, format='%Y-%m-%d', default_date_m_d_y=(1, 1, 1980),
                                    target='Birth Date', location=(PAD_X * 1.2, PAD_Y * 7)),
                [gui.Input(key='Birth Date', size=SIZE, font=FONT)]]])  # TODO DATE HANDLING
 

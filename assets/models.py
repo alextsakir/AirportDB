@@ -190,7 +190,7 @@ class _HasTuple:
             elif isinstance(_slot, _dt):
                 _data.append(object.__getattribute__(self, _slot.strftime(DatetimeFormat.DATETIME.value)))
             elif isinstance(_slot, _date):
-                _data.append(object.__getattribute__(self, _slot.strftime(DatetimeFormat.DATE.value)))
+                _data.append(object.__getattribute__(self, _slot.strftime(DatetimeFormat.DATE.value)))  # fixme
             else:
                 _data.append(object.__getattribute__(self, _slot))
         return tuple(_data)
