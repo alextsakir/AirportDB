@@ -2,13 +2,16 @@
 *Created on 27 Dec 2023.*
 """
 
-from ctypes import windll
 from sys import path
 path.append("./")  # DO NOT TOUCH OTHERWISE VSCODE USERS CRY :( ----------------------------------------- IT'S PATHETIC
+
+from ctypes import windll  # noqa E402
+import sqlite3  # noqa E402
 
 import PySimpleGUI as gui  # noqa E402
 
 from assets import *  # noqa E402
+from assets.constants import DATABASE  # noqa E402
 
 SCREEN = windll.user32.GetSystemMetrics(0), windll.user32.GetSystemMetrics(1)
 PAD_X, PAD_Y = SCREEN[0] // 5, SCREEN[1] // 10  # NOTE parameterize window dimensions to match to any screen resolution
@@ -76,11 +79,11 @@ if event == "-SUBMIT-":
     emp = Employee(*values)
     print(values, "\n", emp, "\n", emp.tuple)
 
+    '''
     database("insert into Employee(SSN, first_name, middle_name, last_name, telephone, email, street, number,"
              "town, postal_code, birth_date, dept_id, sex) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-             emp.tuple)
+             emp.tuple)'''  # NOTE ------------------------------------------------ surprisingly, it's not working here
 
-    '''
     db = sqlite3.connect(DATABASE)
     cursor = db.cursor()
 
@@ -88,6 +91,6 @@ if event == "-SUBMIT-":
                    "town, postal_code, birth_date, dept_id, sex) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                    emp.tuple)
     db.commit()
-    db.close()'''
+    db.close()
 
 print("got here")

@@ -188,10 +188,8 @@ class _HasTuple:
             if hasattr(_attr, "tuple"):
                 _data.extend([*_attr.tuple])  # NOTE recursion
             elif isinstance(_attr, _dt):
-                print("models tuple in datetime")
                 _data.append(_attr.strftime(DatetimeFormat.DATETIME.value))
             elif isinstance(_attr, _date):
-                print("models tuple in date")
                 _data.append(_attr.strftime(DatetimeFormat.DATE.value))
             else:
                 _data.append(_attr)
@@ -749,13 +747,14 @@ class Rectangle:
 
 class Airline(_DatabaseRecord):
 
-    __slots__: tuple[str] = "id", "name", "designator"
+    __slots__: tuple[str] = "id", "name", "designator", "airplanes"
 
-    def __init__(self, airline_id: int, name: str, designator: str) -> NoReturn:
+    def __init__(self, airline_id: int, name: str, designator: str, airplanes: int) -> NoReturn:
         super().__init__()
         self.id: int = airline_id
         self.name: str = name
         self.designator: str = designator
+        self.airplanes: int = airplanes
         pass
 
     def __str__(self) -> str:

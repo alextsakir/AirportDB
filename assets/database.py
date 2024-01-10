@@ -305,6 +305,18 @@ class Database:
             print(f"{_counter} NEW FLIGHT OCCURRENCES DETECTED.")
         return
 
+    def update_airline_airplanes(self) -> NoReturn:
+        _counter: int = 0
+        for airline in self("select id, airplanes from Airline").fetchall():
+            count = self("select count() from Airplane where airline = ?", (airline[0],)).fetchone()[0]
+            print(airline[0], count)
+            if airline[1] != count:
+                _counter += abs(count - airline[1]) if airline[1] is not None else count
+                self("update Airline set airplanes = ? where id = ?", (count, airline[0]))
+        if self._DEBUG:
+            print(f"{_counter} NEW AIRPLANES DETECTED.")
+        return
+
     def states_init(self, state: str = "Scheduled") -> NoReturn:
         """
         Checks each flight record and sets state to Scheduled if it's null.
@@ -390,7 +402,7 @@ class Database:
 
 database: Optional[Database] = None
 try:
-    database = Database(DATABASE, debug=True, print_queries=True)  # NOTE -------- toggle debug info and query printing
+    database = Database(DATABASE, debug=True, print_queries=False)  # NOTE -------- toggle debug info and query printing
 except _sql.OperationalError:
     print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
 
