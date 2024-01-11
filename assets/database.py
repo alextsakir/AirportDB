@@ -401,7 +401,7 @@ class Database:
         return _ch(self.table_tuples("Airline"))[2]
 
     def schedules(self) -> str:
-        _out: list[str] = [models.Schedule.headers()]
+        _out: list[str] = list()  # [models.Schedule.headers()]
         _query = ("select code, A1.IATA, A2.IATA, departure, arrival, days from Schedule "
                   "join main.Airport A1 on A1.id = Schedule.to_airport "
                   "join main.Airport A2 on A2.id = Schedule.from_airport")
