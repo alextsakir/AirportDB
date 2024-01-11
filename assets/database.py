@@ -42,12 +42,12 @@ class Database:
         Pass print_queries=True to have queries printed.
         """
         self._name: str = name
-        self._connection: _sql.Connection = _sql.Connection(path)
+        self._connection: _sql.Connection = _sql.Connection(path, check_same_thread=False)  # NOTE -------- for Flutter
         self._cursor: _sql.Cursor = self._connection.cursor()
         Database.Tables = Enum("Tables", [(_table.upper(), _table) for _table in self.tables])  # NOTE ----- DEPRECATED
         Database._DEBUG, Database._PRINT_QUERIES = debug, print_queries
         if self._DEBUG:
-            print(f"{self._name} DATABASE CONNECTED")
+            print(f"{self._name} DATABASE CONNECTED, THREAD SAFETY LEVEL: {_sql.threadsafety}")
         return
 
     def __str__(self) -> str:
@@ -118,9 +118,24 @@ class Database:
         :return: list
         """
         _data: list = self("select name from sqlite_master where type='table' order by name").fetchall()
-        _tables: list[str] = [_table[0] for _table in _data]  # NOTE ------- Cursor.fetchall() returns a list of tuples
+        _tables: list[str] = [_table[0] for _table in _data]
         _tables.remove("sqlite_sequence")
         return _tables
+
+    @property
+    def views(self) -> list[str]:
+        """
+        Returns a list of all view names, obtained from auto-generated sqlite_master.
+        :return: list
+        """
+        _data: list = self("select name from sqlite_master where type='view' order by name").fetchall()
+        _views: list[str] = [_table[0] for _table in _data]
+        return _views
+
+    def table_columns(self, table_name: str) -> list[str]:
+        if table_name not in self.tables + self.views:
+            raise AttributeError(f"No table named {table_name} exists, check your spelling.")
+        return self(f"select name from pragma_table_info('{table_name}')").fetchall()
 
     def table_info(self, table_name: str) -> Optional[list]:
         """
@@ -132,6 +147,9 @@ class Database:
         if table_name not in self.tables:
             raise AttributeError(f"No table named {table_name} exists, check your spelling.")
         return self("pragma table_info(?)", (table_name,)).fetchall()
+
+    def terminals(self) -> list[str]:
+        return [element[0] for element in self("select gate_t as terminal from Flight group by gate_t").fetchall()]
 
     def random_department(self) -> int:
         return _ch(self("select id from Department").fetchall())[0]
@@ -402,7 +420,7 @@ class Database:
 
 database: Optional[Database] = None
 try:
-    database = Database(DATABASE, debug=True, print_queries=False)  # NOTE -------- toggle debug info and query printing
+    database = Database(DATABASE, debug=True, print_queries=False)  # NOTE ------- toggle debug info and query printing
 except _sql.OperationalError:
     print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
 
