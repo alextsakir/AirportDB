@@ -1,3 +1,5 @@
+import sys
+sys.path.append("./")
 from enum import Enum
 from threading import Lock
 from typing import Optional
