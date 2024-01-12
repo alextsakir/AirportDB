@@ -1,5 +1,5 @@
 """
-enumerations: DatetimeFormat, CoordinateType, Quarter, Day
+enumerations: CycleEnum, DatetimeFormat, CoordinateType, Quarter, Day
 
 classes: Coordinates, Rectangle, Airline, Employee, Airport, Schedule, Flight, Gate
 
@@ -7,8 +7,8 @@ classes: Coordinates, Rectangle, Airline, Employee, Airport, Schedule, Flight, G
 and the match-case statement (PEP 634 ~ PEP 636)**
 """
 
-__all__: tuple[str] = ("DatetimeFormat", "CoordinateType", "Quarter", "Day",
-                       "Coordinate", "Coordinates", "Rectangle", "Airline",
+__all__: tuple[str] = ("CycleEnum", "DatetimeFormat", "CoordinateType", "Quarter",
+                       "Day", "Coordinate", "Coordinates", "Rectangle", "Airline",
                        "Employee", "Airport", "Schedule", "Flight", "Gate")
 __author__ = "A. Tsakiridis"
 __version__ = "1.3"
@@ -56,6 +56,15 @@ class _Enum(Enum):  # ----------------------------------------------------------
         Returns a string representation of enumeration's members.
         """
         return cls.name() + ": " + str(" ").join([str(element) for element in cls])
+
+
+class CycleEnum(_Enum):
+    def next(self):
+        _members = list(self.__class__)
+        _index = _members.index(self) + 1
+        if _index >= len(_members):
+            _index = 0
+        return _members[_index]
 
 
 class DatetimeFormat(_Enum):
