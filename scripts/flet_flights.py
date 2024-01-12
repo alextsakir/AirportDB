@@ -1,74 +1,84 @@
 from enum import Enum
-from threading import Lock
-from typing import Optional
+from random import choice
+from typing import Optional, NoReturn
 
 import flet
 from flet_core import TextAlign
 
 
 from assets import *
+from assets.models import CycleEnum
 
 
 class Category(Enum):
     DEPARTURE, ARRIVAL = "Departure", "Arrival"
 
 
-class Terminal(Enum):
-    A, B, C = database.terminals()  # bad
+Terminal = CycleEnum("Terminal", [(terminal, terminal) for terminal in database.terminals()])
+
+
+class FlightCategories(dict):
+
+    def __init__(self) -> NoReturn:
+        super().__init__()
+        _list = [(category, terminal) for category in Category.__members__ for terminal in Terminal.__members__]
+        for category, terminal in _list:
+            category = category.capitalize()
+            _key = category + terminal
+            _airport_column = "destination" if category == Category.DEPARTURE.value else "starting_point"
+            _date_column = "departure" if category == Category.DEPARTURE.value else "arrival"
+            self[_key] = database(f"select code, airline, {_airport_column}, {_date_column}, state, "
+                                  f"check_in, gate from {category} "
+                                  f"where terminal = ? order by {category.lower()} limit 100", (terminal,)).fetchall()
+            if not hasattr(self, category):
+                self.__setattr__(category, ["code", "airline", _airport_column, _date_column,
+                                            "state", "check_in", "gate"])
+        return
+
+
+data = FlightCategories()
 
 
 class State:
-    CATEGORY: Category = Category.DEPARTURE
-    TERMINAL: Terminal = Terminal.A
-    COLUMNS: list[str] = list()
-    DATA: list = list()
-
-
-# top: Optional[flet.Row] = None
-# table: Optional[flet.DataTable] = None
-
-lock = Lock()
+    CATEGORY, TERMINAL = choice(list(Category)), choice(list(Terminal))
+    COLUMNS, DATA = list(), list()
 
 
 def departures(page: flet.Page):
     top: Optional[flet.Row] = flet.Row()
     table: Optional[flet.DataTable] = flet.DataTable()
-    # global top, table
 
     def set_state():
         # global top, table
         title = flet.Text(value=f"TERMINAL {State.TERMINAL.value} {(State.CATEGORY.value + 's').upper()}",
-                          color="yellow", size=40, width=1600, text_align=TextAlign.CENTER)
+                          color="yellow", size=40, width=1550, text_align=TextAlign.CENTER)
         category = flet.ElevatedButton(text=State.CATEGORY.value, on_click=change_category, width=150, color="yellow")
-        # category = flet.IconButton(flet.icons.CHANGE_CIRCLE, on_click=change_category, width=150)
         terminal = flet.ElevatedButton(text=State.TERMINAL.value, on_click=change_terminal, width=150, color="yellow")
-        # terminal = flet.IconButton(flet.icons.TV, on_click=change_terminal, width=150)
 
         top = flet.Row(controls=[title, category, terminal])
 
-        try:
-            lock.acquire(True)
-            State.COLUMNS = database.table_columns(State.CATEGORY.value)
-            '''State.DATA = database("select * from ? where terminal = ? limit 100",
-                                  (State.CATEGORY.value, State.TERMINAL.value)).fetchall()'''
-            State.DATA = database(f"select * from {State.CATEGORY.value} "
-                                  f"where terminal = '{State.TERMINAL.value}' limit 100").fetchall()
-        except Exception as e:
-            print(e)
-        finally:
-            lock.release()
+        State.COLUMNS = getattr(data, State.CATEGORY.value)
+        State.DATA = data[State.CATEGORY.value + State.TERMINAL.value]
 
-        table_columns, table_rows = [flet.DataColumn(flet.Text(value=column[0])) for column in State.COLUMNS], list()
+        table_columns = [flet.DataColumn(flet.Text(value=column.upper(), size=20)) for column in State.COLUMNS]
+        table_rows = list()
         for row in State.DATA:
-            table_rows.append(flet.DataRow(cells=[flet.DataCell(flet.Text(str(column))) for column in row]))
+            table_rows.append(flet.DataRow(cells=[flet.DataCell(flet.Text(value=str(column))) for column in row]))
+            for index, color in enumerate(["blue", "yellow", "orange", "blue", "white", "yellow", "yellow"]):
+                table_rows[-1].cells[index].content.color = color
+
         table = flet.DataTable(columns=table_columns, rows=table_rows, width=1900,
-                               horizontal_lines=flet.border.BorderSide(1, "yellow"))
+                               horizontal_lines=flet.border.BorderSide(1.5, "yellow"))
         page.clean()
         page.add(top, table)
         page.update()
 
     def keyboard(e: flet.KeyboardEvent):
-        if e.key == "C":
+        if e.key == "Escape":
+            page.clean()
+        elif e.key == "R":
+            set_state()
+        elif e.key == "C":
             change_category(e)
         elif e.key == "T":
             change_terminal(e)
@@ -78,12 +88,7 @@ def departures(page: flet.Page):
         set_state()
 
     def change_terminal(e):
-        if State.TERMINAL == Terminal.A:
-            State.TERMINAL = Terminal.B
-        elif State.TERMINAL == Terminal.B:
-            State.TERMINAL = Terminal.C
-        elif State.TERMINAL == Terminal.C:
-            State.TERMINAL = Terminal.A
+        State.TERMINAL = State.TERMINAL.next()
         set_state()
 
     set_state()

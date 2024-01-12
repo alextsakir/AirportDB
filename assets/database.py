@@ -12,8 +12,8 @@ from assets import models
 
 
 class Database:
-    class Tables(Enum):  # NOTE ---------------------------------------------------------------------------- DEPRECATED
-        pass  # -------------- members filled in __init__, could not use Tables.__setattr__ because Enum's immutability
+
+    Tables: Enum = None  # ------ members filled in __init__, cannot use Tables.__setattr__ because Enum's immutability
 
     _MONTH: ClassVar[tuple[int, int]] = 2024, 2
     _DEBUG: ClassVar[bool] = False
@@ -149,6 +149,10 @@ class Database:
         return self("pragma table_info(?)", (table_name,)).fetchall()
 
     def terminals(self) -> list[str]:
+        """
+        Returns available terminal names, searched in records of Flight table.
+        :return: list
+        """
         return [element[0] for element in self("select gate_t as terminal from Flight group by gate_t").fetchall()]
 
     def random_department(self) -> int:
@@ -401,7 +405,7 @@ class Database:
         return _ch(self.table_tuples("Airline"))[2]
 
     def schedules(self) -> str:
-        _out: list[str] = list()  # [models.Schedule.headers()]
+        _out: list[str] = list()  # [models.Schedule.headers()] NOTE ----------------------------------- NotImplemented
         _query = ("select code, A1.IATA, A2.IATA, departure, arrival, days from Schedule "
                   "join main.Airport A1 on A1.id = Schedule.to_airport "
                   "join main.Airport A2 on A2.id = Schedule.from_airport")
