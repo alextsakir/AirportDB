@@ -1,4 +1,6 @@
 """
+Opens a form to fill in personal information for a new Employee record.
+
 *Created on 27 Dec 2023.*
 """
 

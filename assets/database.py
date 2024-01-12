@@ -1,3 +1,9 @@
+"""
+Class Database establishes connection to SQLite database and executes queries to it.
+
+*Created on Nov 2023.*
+"""
+
 __all__: tuple[str] = "database"
 
 from datetime import datetime as _dt, date as _date, timedelta as _timed
@@ -222,7 +228,7 @@ class Database:
         _shuf(_airports)
         _data.extend(_airports)
         if _data[1] == self.athens.id:
-            _data.extend([str(self.random_hour()), None])  # fixme
+            _data.extend([str(self.random_hour()), None])
         elif _data[2] == self.athens.id:
             _data.extend([None, str(self.random_hour())])
         _data.extend([_rand(0, 127), None, 1, 0])
@@ -290,13 +296,6 @@ class Database:
 
             if self._DEBUG:
                 print(_data)
-
-                '''
-                _query = (f"insert into Flight (code, from_airport, to_airport, departure, arrival, state,"
-                         f" check_in, gate_n, gate_t, airplane) values ('{_data[0]}', '{_data[1]}',"
-                         f"'{_data[2]}', '{_data[3]}', '{_data[4]}', '{_data[5]}', '{_data[6]}', '{_data[7]}',"
-                         f"'{_data[8]}', '{_data[9]}')")
-                '''  # TODO ----------------------------------------------------------------------------- to be deleted
 
                 departure = ("insert into Flight (code, from_airport, to_airport, departure, state, "
                              "check_in, gate_n, gate_t, airplane) values (?, ?, ?, ?, ?, ?, ?, ?, ?)")
@@ -375,11 +374,10 @@ class Database:
         *Created on 25 Dec 2023.*
         """
         _counter: int = 0
-        # schedules: list = self("select * from Schedule").fetchall()  # TODO
-        ...
+        # schedules: list = self("select * from Schedule").fetchall()
         if self._DEBUG:
             print(f"{_counter} NONE VALUES WERE REPLACED WITH NULL")
-        return
+        raise NotImplementedError
 
     def table_tuples(self, table_name: str) -> list[tuple]:
         """

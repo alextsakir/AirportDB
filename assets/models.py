@@ -113,6 +113,8 @@ class Day(_Enum):
     SUNDAY, MONDAY, TUESDAY, WEDNESDAY = (0, "SUN"), (1, "MON"), (2, "TUE"), (3, "WED")
     THURSDAY, FRIDAY, SATURDAY = (4, "THU"), (5, "FRI"), (6, "SAT")
 
+    # For this enum, Sunday corresponds to 0, while official datetime library depicts Monday as 0.
+
     @classmethod
     def day(cls, number: int | _date) -> Optional[Self]:
         if isinstance(number, _date):
@@ -548,7 +550,7 @@ class Coordinates:
         return None
 
     def __delattr__(self, name):
-        raise AttributeError()
+        raise AttributeError
 
     # =================================================================================================================
 
@@ -575,7 +577,7 @@ class Coordinates:
 
     def relative_location(self, other: Self) -> tuple[list[list[Optional[Self]]], int, int, int, int]:
         """
-        DEPRECATED, use Airport.draw() instead.
+        Use Airport.draw() instead.
 
         *Created on 11 Nov 2023.*
         """
