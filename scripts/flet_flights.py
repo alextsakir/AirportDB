@@ -1,10 +1,15 @@
+"""
+Makes a web page showing operated flights, departures or arrivals, separated by Terminal.
+
+Created on 12 Jan 2024.
+"""
+
 from enum import Enum
 from random import choice
 from typing import Optional, NoReturn
 
 import flet
 from flet_core import TextAlign
-
 
 from assets import *
 from assets.models import CycleEnum
@@ -27,9 +32,9 @@ class FlightCategories(dict):
             _key = category + terminal
             _airport_column = "destination" if category == Category.DEPARTURE.value else "starting_point"
             _date_column = "departure" if category == Category.DEPARTURE.value else "arrival"
-            self[_key] = database(f"select code, airline, {_airport_column}, {_date_column}, state, "
-                                  f"check_in, gate from {category} "
-                                  f"where terminal = ? order by {category.lower()} limit 100", (terminal,)).fetchall()
+            self[_key] = database(f"select code, airline, ?, ?, state, check_in, gate from {category} "
+                                  f"where terminal = ? order by ? limit 100",
+                                  (_airport_column, _date_column, terminal, category.lower())).fetchall()
             if not hasattr(self, category):
                 self.__setattr__(category, ["code", "airline", _airport_column, _date_column,
                                             "state", "check_in", "gate"])
@@ -49,7 +54,6 @@ def departures(page: flet.Page):
     table: Optional[flet.DataTable] = flet.DataTable()
 
     def set_state():
-        # global top, table
         title = flet.Text(value=f"TERMINAL {State.TERMINAL.value} {(State.CATEGORY.value + 's').upper()}",
                           color="yellow", size=40, width=1550, text_align=TextAlign.CENTER)
         category = flet.ElevatedButton(text=State.CATEGORY.value, on_click=change_category, width=150, color="yellow")
