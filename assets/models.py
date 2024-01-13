@@ -5,32 +5,35 @@ classes: Coordinates, Rectangle, Airline, Employee, Airport, Schedule, Flight, G
 
 **NOTE: Python 3.11 required for typing.Self (PEP 673), the pipe operator '|' (PEP 604)
 and the match-case statement (PEP 634 ~ PEP 636)**
+
+*Created on Oct 2023.*
 """
 
 __all__: tuple[str] = ("CycleEnum", "DatetimeFormat", "CoordinateType", "Quarter",
                        "Day", "Coordinate", "Coordinates", "Rectangle", "Airline",
                        "Employee", "Airport", "Schedule", "Flight", "Gate")
 __author__ = "A. Tsakiridis"
-__version__ = "1.3"
+__version__ = "1.4"
 
 from abc import abstractmethod, ABC
 from datetime import datetime as _dt, date as _date, timezone as _t_zone, timedelta as _timed
-from enum import Enum
+from collections.abc import Iterable, Sized
+from enum import Enum, unique
 from functools import total_ordering as __total_order
 from math import sin, cos, sqrt, asin, radians, degrees, atan
 from random import choice as _ch, randint as _rand
 from sys import version_info, stderr as standard_error
-from typing import NoReturn, overload, Union, Iterator, Optional, Type, ClassVar, Final
+from typing import (NoReturn, Self, overload, Union, Iterator, Optional,
+                    Type, ClassVar, Final, SupportsFloat, SupportsInt)
 
-if version_info >= (3, 11):
-    from typing import Self
-else:
+if not version_info >= (3, 11):
     print(f"INCOMPATIBLE VERSION {version_info}, PLEASE USE PYTHON 3.11 OR HIGHER.")
 
 from assets.constants import *
 
 
-class _Enum(Enum):  # ---------------------------------------------------------------------------- Enumeration template
+@unique
+class _EnumBase(Enum):  # ------------------------------------------------------------------------ Enumeration template
 
     @classmethod
     def name(cls) -> str:
@@ -58,8 +61,11 @@ class _Enum(Enum):  # ----------------------------------------------------------
         return cls.name() + ": " + str(" ").join([str(element) for element in cls])
 
 
-class CycleEnum(_Enum):
+class CycleEnum(_EnumBase):
     def next(self):
+        """
+        Allows getting the next member of the enumeration, cycling back to the first after the last.
+        """
         _members = list(self.__class__)
         _index = _members.index(self) + 1
         if _index >= len(_members):
@@ -67,7 +73,7 @@ class CycleEnum(_Enum):
         return _members[_index]
 
 
-class DatetimeFormat(_Enum):
+class DatetimeFormat(_EnumBase):
     """
     Members: **DATETIME, DATE, TIME**
 
@@ -76,14 +82,14 @@ class DatetimeFormat(_Enum):
     DATETIME, DATE, TIME = "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%H:%M:%S"
 
 
-class CoordinateType(_Enum):
+class CoordinateType(_EnumBase):
     """
     Members: **LATITUDINAL, LONGITUDINAL, UNKNOWN**
     """
     LATITUDINAL, LONGITUDINAL, UNKNOWN = "latitudinal", "longitudinal", "unknown"
 
 
-class Quarter(_Enum):
+class Quarter(_EnumBase):
     """
     Members: **NORTH, SOUTH, EAST, WEST, UNKNOWN**
 
@@ -108,7 +114,7 @@ class Quarter(_Enum):
         return cls.UNKNOWN
 
 
-class Day(_Enum):
+class Day(CycleEnum):
     """Members: **SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY**"""
     SUNDAY, MONDAY, TUESDAY, WEDNESDAY = (0, "SUN"), (1, "MON"), (2, "TUE"), (3, "WED")
     THURSDAY, FRIDAY, SATURDAY = (4, "THU"), (5, "FRI"), (6, "SAT")
@@ -207,12 +213,14 @@ class _HasTuple:
         return tuple(_data)
 
 
-class _Composite(_HasTuple):
+class _CompleteCheck:
     """
     Protected class to be inherited at ``models.Schedule`` inner classes, inherits from ``_HasTuple``. ``_Composite``
     implements a property named ``complete`` that boolean value indicating if all the instance attributes are not None
     and not empty string.
     """
+
+    __slots__: tuple[str] = ()
 
     @property
     def complete(self) -> bool:
@@ -229,7 +237,7 @@ class _DatabaseRecord(ABC, _HasTuple):
     @abstractmethod
     def __init__(self, *args, **kwargs) -> NoReturn:
         """
-        Protected abstract class to be inherited by classes depicting database records that contains:
+        Abstract class to be inherited by classes depicting database records that contains:
 
         ``db(args: tuple)``: class method used to create child-class instances by arguments in a tuple,
         at the same order they are stored in the database.
@@ -263,18 +271,15 @@ class _DatabaseRecord(ABC, _HasTuple):
     def headers() -> str:
         ...
 
-    class Dict:  # ----------------------------------------------------------------------------------------- DEPRECATED
-        ...
-
     @property
-    def dict(self) -> dict:
+    def dict(self) -> dict:  # it's not working
         return {_slot: getattr(self, _slot) for _slot in self.__slots__}
 
 # =====================================================================================================================
 
 
 @__total_order
-class Coordinate:
+class Coordinate(SupportsInt, SupportsFloat):
 
     C_TYPE_REQUIRED: Final[bool] = True  # NOTE ------------------------- PEP 591: Final annotation means ClassVar also
 
@@ -365,7 +370,15 @@ class Coordinate:
     def empty(cls):
         return cls(value=0, quarter=Quarter.UNKNOWN)
 
-    # =============================================================================================================
+    # =================================================================================================================
+
+    @property
+    def value(self) -> float:
+        return self._value
+
+    @property
+    def type(self) -> CoordinateType:
+        return self._type
 
     def __str__(self) -> str:
         return " ".join([self._label + ":" if len(self._label) else str(), str(abs(self))[:8], self.quarter.value[0]])
@@ -438,7 +451,7 @@ class Coordinate:
         return round(int(degree[0]) + int(degree[1]) / 60 + float(degree[2]) / 3600, 6)
 
 
-class Coordinates:
+class Coordinates(_CompleteCheck, Sized, Iterable[Coordinate]):
 
     # =================================================================================================================
 
@@ -457,6 +470,8 @@ class Coordinates:
     #                       1 degree of longitude at φ deg lat. is          111.32 * cos(φ) km.
 
     __slots__: tuple[str] = "lat", "long", "label"
+
+    _DIMENSION: Final[int] = 2
 
     @overload
     def __init__(self, x: str = None, y: str = None):
@@ -520,23 +535,40 @@ class Coordinates:
             raise TypeError("x, y parameters should be Coordinate, float or string")
         return
 
-    def __iter__(self) -> Iterator:
+    def __len__(self) -> int:
+        return self._DIMENSION
+
+    def __iter__(self) -> Iterator[Coordinate]:
         return iter([self.lat, self.long])
 
     def __str__(self) -> str:
         return ", ".join(str(coord) for coord in self)
 
     def __setitem__(self, key: Union[str, int], value: Union[float, str, Coordinate]) -> NoReturn:
-        if not isinstance(value, Coordinate):
-            value = Coordinate(value)
-        if isinstance(key, int) or isinstance(key, str):
+        _coord_type: CoordinateType = CoordinateType.UNKNOWN
+        if isinstance(key, str | int):
             match key:
                 case 0 | "lat" | "latitude":
-                    self.lat = value
+                    _coord_type = CoordinateType.LATITUDINAL
                 case 1 | "long" | "longitude":
-                    self.long = value
-                case _:
-                    raise KeyError("Keys must be 0 or 1, 'lat' or 'long', 'latitude' or 'longitude'.")
+                    _coord_type = CoordinateType.LONGITUDINAL
+        else:
+            raise KeyError("Key must be 0 or 1, 'lat' or 'long', 'latitude' or 'longitude'.")
+
+        if isinstance(value, Coordinate):
+            if value.type == CoordinateType.LATITUDINAL and key not in (0, "lat", "latitude"):
+                value = Coordinate(value=float(value), coord_type=CoordinateType.LATITUDINAL)
+            elif value.type == CoordinateType.LONGITUDINAL and key not in (1, "long", "longitude"):
+                value = Coordinate(value=float(value), coord_type=CoordinateType.LONGITUDINAL)
+        elif isinstance(value, float | str):
+            value = Coordinate(value=value, coord_type=_coord_type)
+
+        if _coord_type == CoordinateType.LATITUDINAL:
+            self.lat = value
+        elif _coord_type == CoordinateType.LONGITUDINAL:
+            self.long = value
+        else:
+            raise TypeError
         return
 
     def __getitem__(self, item: Union[str, int]) -> Optional[Coordinate]:  # subscriptable
@@ -553,6 +585,14 @@ class Coordinates:
         raise AttributeError
 
     # =================================================================================================================
+
+    @property
+    def latitude(self) -> Coordinate:
+        return self.lat
+
+    @property
+    def longitude(self) -> Coordinate:
+        return self.long
 
     @property
     def on_equator(self) -> bool:
@@ -778,7 +818,7 @@ class Airline(_DatabaseRecord):
 
 class Employee(_DatabaseRecord):
 
-    class Name(_Composite):
+    class Name(_HasTuple, _CompleteCheck):
 
         __slots__: tuple[str] = "first", "middle", "last"
 
@@ -800,7 +840,7 @@ class Employee(_DatabaseRecord):
                 value = value.capitalize().replace(" ", "")
             object.__setattr__(self, key, value)
 
-    class Contact(_Composite):
+    class Contact(_HasTuple, _CompleteCheck):
 
         __slots__: tuple[str] = "telephone", "email"
 
@@ -832,7 +872,7 @@ class Employee(_DatabaseRecord):
                             raise UnicodeError(f"EMAIL ADDRESS {value} HAS INVALID CHARACTERS.")
             object.__setattr__(self, key, value)
 
-    class Address(_Composite):
+    class Address(_HasTuple, _CompleteCheck):
 
         __slots__: tuple[str] = "street", "number", "town", "postal_code"
 
@@ -1195,7 +1235,7 @@ class Flight(_DatabaseRecord):
 
 class Gate:
 
-    _DATA = (("A", 1, 23), ("B", 1, 31), ("C", 15, 40))  # NOTE ------------------------- according to official website
+    _DATA = (("A", 1, 23), ("B", 1, 31), ("C", 15, 40))  # NOTE ----------- according to El. Venizelos website, see doc
 
     def __init__(self, number: int, terminal: str) -> NoReturn:
         """
@@ -1213,6 +1253,7 @@ class Gate:
         return self.terminal + str(self.number)
 
     def __conform__(self, protocol):
+        # got from  https://docs.python.org/3.11/library/sqlite3.html#how-to-write-adaptable-objects
         # if protocol is _sql.PrepareProtocol: return f"{self.x};{self.y}"
         raise NotImplementedError
 

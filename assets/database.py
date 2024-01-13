@@ -5,23 +5,37 @@ Class Database establishes connection to SQLite database and executes queries to
 """
 
 __all__: tuple[str] = "database"
+__author__ = "A. Tsakiridis"
+__version__ = "1.0"
 
 from datetime import datetime as _dt, date as _date, timedelta as _timed
-from enum import Enum
 import sqlite3 as _sql
 from random import choice as _ch, randint as _rand, shuffle as _shuf
 from types import GeneratorType
-from typing import ClassVar, NoReturn, Self, Union, Optional, Any
+from typing import ClassVar, Callable, Protocol, NoReturn, Self, Union, Optional, Any
+from sys import version_info
+
+if not version_info >= (3, 11):
+    print(f"INCOMPATIBLE VERSION {version_info}, PLEASE USE PYTHON 3.11 OR HIGHER.")
 
 from assets.constants import DATABASE
 from assets import models
 
 
-class Database:
+class _Parameters(Protocol):  # cloned SupportsLenAndGetItem proto from sqlite3
+    def __len__(self) -> int:
+        ...
 
-    Tables: Enum = None  # ------ members filled in __init__, cannot use Tables.__setattr__ because Enum's immutability
+    def __getitem__(self, __k: int) -> Any:
+        ...
+
+
+class Database(Callable[[str, _Parameters], Union[_sql.Cursor, _sql.DatabaseError]]):
+
+    Tables: models.CycleEnum = None  # -- filled in __init__, cannot use Tables.__setattr__ because Enum's immutability
 
     _MONTH: ClassVar[tuple[int, int]] = 2024, 2
+    _READ_ONLY: ClassVar[bool] = False
     _DEBUG: ClassVar[bool] = False
     _PRINT_QUERIES: ClassVar[bool] = False
     _EXISTS: ClassVar[bool] = False
@@ -42,22 +56,28 @@ class Database:
         cls._EXISTS = True
         return super().__new__(cls)
 
-    def __init__(self, path: str, name: str = "AIRPORT", debug: bool = False, print_queries: bool = False) -> NoReturn:
+    def __init__(self, path: str, name: str = "AIRPORT", readonly: bool = False,
+                 debug: bool = False, print_queries: bool = False) -> NoReturn:
         """
+        Pass readonly=True to disable writing on database.
         Pass debug=True to have debugging information displayed.
         Pass print_queries=True to have queries printed.
         """
         self._name: str = name
-        self._connection: _sql.Connection = _sql.Connection(path, check_same_thread=False)  # NOTE -------- for Flutter
+        Database._READ_ONLY = readonly
+        if Database._READ_ONLY:
+            path = "file:" + path + "?mode=ro"
+        self._connection: _sql.Connection = _sql.connect(path, check_same_thread=False)  # NOTE --- changed for Flutter
         self._cursor: _sql.Cursor = self._connection.cursor()
-        Database.Tables = Enum("Tables", [(_table.upper(), _table) for _table in self.tables])  # NOTE ----- DEPRECATED
+        Database.Tables = models.CycleEnum("Tables", [(_tbl.upper(), _tbl) for _tbl in self.tables])  # ---- DEPRECATED
+        self._connection.row_factory = _sql.Row
         Database._DEBUG, Database._PRINT_QUERIES = debug, print_queries
         if self._DEBUG:
             print(f"{self._name} DATABASE CONNECTED, THREAD SAFETY LEVEL: {_sql.threadsafety}")
         return
 
     def __str__(self) -> str:
-        return self._name + "database"
+        return self._name + " database"
 
     def __enter__(self) -> Self:
         raise NotImplementedError  # TODO
@@ -78,7 +98,7 @@ class Database:
             print("\t\tCHANGES_COMMITTED\t\tDATABASE_CLOSED")
         self._connection.close()
 
-    def __call__(self, __sql: str, __parameters: Any = ()) -> Union[_sql.Cursor, _sql.DatabaseError]:
+    def __call__(self, __sql: str, __parameters: _Parameters = ()) -> Union[_sql.Cursor, _sql.DatabaseError]:
         """
         Executes SQL query and returns cursor. Signature is taken from sqlite3.Cursor.execute().
         :param __sql:
@@ -127,6 +147,10 @@ class Database:
         _tables: list[str] = [_table[0] for _table in _data]
         _tables.remove("sqlite_sequence")
         return _tables
+
+    @property
+    def master(self) -> list[tuple]:
+        return self("select * from sqlite_master").fetchall()
 
     @property
     def views(self) -> list[str]:
@@ -427,4 +451,4 @@ except _sql.OperationalError:
     print(f"Couldn't find database in {DATABASE}, please check path in assets.constants.py")
 
 if __name__ == "__main__":
-    ...
+    print(database, database.tables)
