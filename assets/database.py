@@ -59,7 +59,7 @@ class Database(Callable[[str, _Parameters], Union[_sql.Cursor, _sql.DatabaseErro
     def __init__(self, path: str, name: str = "AIRPORT", readonly: bool = False,
                  debug: bool = False, print_queries: bool = False) -> NoReturn:
         """
-        Pass readonly=True to disable writing on database.
+        Pass readonly=True to disable writing on database. NOTE: IT IS EXPERIMENTAL. Use with caution!
         Pass debug=True to have debugging information displayed.
         Pass print_queries=True to have queries printed.
         """
@@ -426,21 +426,28 @@ class Database(Callable[[str, _Parameters], Union[_sql.Cursor, _sql.DatabaseErro
         """
         return _ch(self.table_tuples("Airline"))[2]
 
+    @property
+    def schedule_counter_by_airline(self) -> list[str]:
+        """
+        Returns a list of the airlines that have flight schedules, counting the schedules of each one.
+        :return: list
+        """
+        return database("select airline, count() as schedule_count from ScheduleView "
+                        "group by airline order by schedule_count desc").fetchall()
+
+    @property
     def schedules(self) -> str:
-        _out: list[str] = list()  # [models.Schedule.headers()] NOTE ----------------------------------- NotImplemented
-        _query = ("select code, A1.IATA, A2.IATA, departure, arrival, days from Schedule "
-                  "join main.Airport A1 on A1.id = Schedule.to_airport "
-                  "join main.Airport A2 on A2.id = Schedule.from_airport")
-
-        schedules = self(_query).fetchall()
-        for schedule in schedules:
-            airline = \
-                self(f"select name from Airline where designator = '{schedule[0][:2]}'").fetchone()[0]
-            row: str = schedule[0] + " " * 6 + airline + " " * (30 - len(airline)) + schedule[1] + "   " + schedule[2]
-            row += " " * 6 + str(schedule[3]) + " " * (25 - len(str(schedule[3]))) + str(schedule[4])
-            row += " " * (25 - len(str(schedule[4])))
-            _out.append(row + " ".join([member.value[1] for member in models.Day.code_to_days(schedule[5])]))
-
+        _out: list[str] = list()
+        _head: str = "FLIGHT ==== AIRLINE " + "=" * 21 + " FROM = TO " + "=" * 3 + " DEPARTURE ARRIVAL "
+        _out.append(_head + "== WEEK DAYS " + "=" * 22 + " LAST MODIFICATION")
+        for schedule in self("select * from ScheduleView order by code").fetchall():
+            row: str = schedule[0] + " " * 6 + schedule[1] + " " * (30 - len(schedule[1]))
+            row += schedule[2] + " " * 4 + str(schedule[3]) + " " * 4
+            row += str(schedule[4]) + " " * 5 if schedule[4] is not None else "_" * 5 + " " * 5
+            row += str(schedule[5]) if schedule[5] is not None else "_" * 5
+            row += " " * 6 + " ".join([member.value[1] for member in models.Day.code_to_days(schedule[6])])
+            row += " " * (110 - len(row)) + schedule[7]
+            _out.append(row)
         return "\n".join(element for element in _out)
 
 

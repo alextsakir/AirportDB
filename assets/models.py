@@ -1166,7 +1166,9 @@ class Schedule(_DatabaseRecord):
         if arrival is not None:
             self.arrival = arrival if isinstance(arrival, _dt) else _dt.strptime(arrival, _f)
         self._days: int = days
-        self.modified: Optional[_dt] = modified if isinstance(modified, _dt) else _dt.strptime(modified, _f)
+        self.modified: Optional[_dt] = None
+        if isinstance(modified, (_dt, str)):
+            self.modified = modified if isinstance(modified, _dt) else _dt.strptime(modified, _f)
         self.active: bool = bool(active)
         self.occurrences: int = occurrences
         return
