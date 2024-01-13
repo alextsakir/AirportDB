@@ -6,7 +6,7 @@ Makes a web page showing operated flights, departures or arrivals, separated by 
 
 from enum import Enum
 from random import choice
-from typing import Optional, NoReturn
+from typing import NoReturn
 
 import flet
 from flet_core import TextAlign
@@ -32,9 +32,9 @@ class FlightCategories(dict):
             _key = category + terminal
             _airport_column = "destination" if category == Category.DEPARTURE.value else "starting_point"
             _date_column = "departure" if category == Category.DEPARTURE.value else "arrival"
-            self[_key] = database(f"select code, airline, ?, ?, state, check_in, gate from {category} "
-                                  f"where terminal = ? order by ? limit 100",
-                                  (_airport_column, _date_column, terminal, category.lower())).fetchall()
+            self[_key] = database(f"select code, airline, {_airport_column}, {_date_column}, state, check_in, gate "
+                                  f"from {category} where terminal = '{terminal}' order by {category.lower()} limit 100"
+                                  ).fetchall()  # NOTE ------ could not avoid f-string here
             if not hasattr(self, category):
                 self.__setattr__(category, ["code", "airline", _airport_column, _date_column,
                                             "state", "check_in", "gate"])
@@ -50,8 +50,8 @@ class State:
 
 
 def departures(page: flet.Page):
-    top: Optional[flet.Row] = flet.Row()
-    table: Optional[flet.DataTable] = flet.DataTable()
+    # top: Optional[flet.Row] = flet.Row()
+    # table: Optional[flet.DataTable] = flet.DataTable()
 
     def set_state():
         title = flet.Text(value=f"TERMINAL {State.TERMINAL.value} {(State.CATEGORY.value + 's').upper()}",
