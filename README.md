@@ -57,9 +57,9 @@ PIP instruction: `pip install PySimpleGUI`
 
 #### Flet (Flutter for Python)
 
-Package website: ...
+Package website: https://flet.dev/docs/
 
-Download here: ...
+Download here: https://pypi.org/project/flet/
 
 PIP instruction: `pip install flet`
 
