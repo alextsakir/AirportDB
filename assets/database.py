@@ -194,7 +194,11 @@ class Database(Callable[[str, _Parameters], Union[_sql.Cursor, _sql.DatabaseErro
     def random_employee(self) -> Optional[tuple]:
         """*Created on 9 Nov 2023.*"""
         models.Employee.load_files()
-        _data = [models.Employee.random_ssn(), _ch(models.Employee.FIRST_NAMES),
+        ssn_list: list[int] = [element[0] for element in database("select SSN from Employee").fetchall()]
+        ssn = models.Employee.random_ssn()
+        if ssn in ssn_list:
+            return self.random_employee()
+        _data = [ssn, _ch(models.Employee.FIRST_NAMES),
                  _ch(models.Employee.FIRST_NAMES), _ch(models.Employee.LAST_NAMES)]
         _telephone: str = "+30 694 " + str().join([str(_rand(0, 9)) for _ in range(3)]) + " "
         _telephone += str().join([str(_rand(0, 9)) for _ in range(4)])

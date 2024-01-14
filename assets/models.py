@@ -977,7 +977,7 @@ class Employee(_DatabaseRecord):
     def generate_email(cls, first: str, last: str, birth_date: _date) -> str:
         """*Created on 9 Nov 2023.*"""
         _choice, _user, first, last = _rand(1, 9), str(), first.lower(), last.lower()
-        _user = first[:-_rand(1, len(first) - 2)] + _ch(["_", "-", ".", ""]) + last[:-_rand(1, len(last) - 2)]
+        _user = first[:-_rand(1, len(first) - 2)] + _ch(["_", "-", ".", ""]) + last[:-_rand(1, len(last) - 2)]  # fixme
         match _choice:
             case 1 | 2: _user += str().join([str(_rand(0, 9)) for _ in range(_rand(1, 3))])
             case 3 | 4 | 5: _user += str(birth_date.year)
