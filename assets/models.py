@@ -160,6 +160,8 @@ class Day(CycleEnum):
 
     @classmethod
     def code_to_days(cls, number: int) -> list[Self]:
+        if not 0 <= number <= (2 ** (cls.length())) - 1:
+            raise AttributeError(f"You must enter a number between 0 and {(2 ** (cls.length())) - 1}")
         _code, _out = bin(number)[2:].rjust(7, "0"), list()
         for index, digit in enumerate(_code):
             if digit == "1":
