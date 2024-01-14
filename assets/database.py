@@ -70,7 +70,7 @@ class Database(Callable[[str, _Parameters], Union[_sql.Cursor, _sql.DatabaseErro
         self._connection: _sql.Connection = _sql.connect(path, check_same_thread=False)  # NOTE --- changed for Flutter
         self._cursor: _sql.Cursor = self._connection.cursor()
         Database.Tables = models.CycleEnum("Tables", [(_tbl.upper(), _tbl) for _tbl in self.tables])  # ---- DEPRECATED
-        self._connection.row_factory = _sql.Row
+        # self._connection.row_factory = _sql.Row
         Database._DEBUG, Database._PRINT_QUERIES = debug, print_queries
         if self._DEBUG:
             print(f"{self._name} DATABASE CONNECTED, THREAD SAFETY LEVEL: {_sql.threadsafety}")
