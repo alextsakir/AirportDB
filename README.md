@@ -43,17 +43,23 @@ Greenwich. Έτσι αποφεύγεται η σύγχυση σε πτήσεις
 ώρας άφιξης και αναχώρησης. Η τοπική ώρα στον προσανατολισμό μιας πτήσης που αναχωρεί από το παρόν
 αεροδρόμιο, θα υπολογίζεται λαμβάνοντας υπ’ όψιν τη ζώνη ώρας του δικού της αεροδρομίου.
 
-Η οντότητα Flight έχει ένα attribute που λέγεται State. Τα διαφορετικά States είναι [να γραφτούν].
+
 
 ### DEPENDENCIES
 
-PySimpleGUI package website: https://www.pysimplegui.org/en/latest/
+#### PySimpleGUI
 
-Download PySimpleGUI here: https://pypi.org/project/PySimpleGUI/4.18.0/
+Package website: https://www.pysimplegui.org/en/latest/
 
+Download here: https://pypi.org/project/PySimpleGUI/4.18.0/
 
+PIP instruction: `pip install PySimpleGUI`
 
+#### Flet (Flutter for Python)
 
+Package website: ...
 
+Download here: ...
 
+PIP instruction: `pip install flet`
 
