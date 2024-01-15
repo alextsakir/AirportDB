@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
-    <Document id="10">
-        <Style id="13">
-            <IconStyle id="15">
+    <Document id="1">
+        <Style id="4">
+            <IconStyle id="6">
                 <colorMode>normal</colorMode>
                 <scale>1</scale>
                 <heading>0</heading>
-                <Icon id="16">
+                <Icon id="7">
                     <href>http://maps.google.com/mapfiles/kml/shapes/airports.png</href>
                 </Icon>
             </IconStyle>
-            <LabelStyle id="14">
+            <LabelStyle id="5">
                 <color>ff00ffff</color>
                 <colorMode>normal</colorMode>
                 <scale>1.5</scale>
             </LabelStyle>
         </Style>
         <name>Airport</name>
-        <Placemark id="12">
+        <Placemark id="3">
             <name>Skyros Island National Airport</name>
             <description>Skyros is the southernmost island of the Sporades, an archipelago in the Aegean Sea.</description>
-            <TimeStamp id="17">
-                <when>2024-01-15 15:51:27.674591</when>
+            <TimeStamp id="8">
+                <when>2024-01-15 16:58:26.622992</when>
             </TimeStamp>
-            <styleUrl>#13</styleUrl>
-            <Point id="11">
-                <coordinates> 38.96831 N, 24.48748 E,0.0</coordinates>
+            <styleUrl>#4</styleUrl>
+            <Point id="2">
+                <coordinates>24.487485,38.968313,0.0</coordinates>
             </Point>
         </Placemark>
     </Document>
