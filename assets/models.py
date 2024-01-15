@@ -1140,20 +1140,30 @@ class Airport(_DatabaseRecord):
         Accepts another Airport object and creates a KML path (line string) between them.
         Writes object name, description and coordinates to a Keyhole Markup Language file that can be opened
         at Google Earth, stores at the directory specified at Coordinates class variable KML_PATH.
+
+        It will be edited to accept any number of Airport objects as arguments.
         :return: None
 
         *Created on 15 Jan 2023.*
         """
-        _kml_data = simplekml.Kml()
-        _kml_data.document.name = self.__class__.__name__
         _doc_name: str = (self.iata + "_" + other.iata).lower()
+        _kml_data = simplekml.Kml()
+        _kml_data.document.name = "route_" + _doc_name
+        _first: simplekml.Point = _kml_data.newpoint(name=self.name)
+        _second: simplekml.Point = _kml_data.newpoint(name=other.name)
+        for _airport, _point in ((self, _first), (other, _second)):
+            _point.coords = [(float(_airport.location.long), float(_airport.location.lat))]
+            if _airport.description is not None:
+                _point.description = _airport.description
+            _point.style = _airport.location.kml_style
+            _point.timestamp.when = _dt.now()
         _line: simplekml.LineString = _kml_data.newlinestring(name=_doc_name)
         _line.coords = [(float(self.location.long), float(self.location.lat)),
                         (float(other.location.long), float(other.location.lat))]
         _line.timestamp.when = _dt.now()  # NOTE ------------------------------------- longitude, latitude and altitude
         _line.style.linestyle.color = simplekml.Color.lime
         Path(f"{self.location.KML_PATH}").mkdir(parents=True, exist_ok=True)
-        _kml_data.save(f"{self.location.KML_PATH}\\{_doc_name}.kml")
+        _kml_data.save(f"{self.location.KML_PATH}\\route_{_doc_name}.kml")
         return
 
     def draw(self, other: Self) -> str:

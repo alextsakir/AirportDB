@@ -19,9 +19,9 @@
         <name>Airport</name>
         <Placemark id="3">
             <name>Eleftherios Venizelos</name>
-            <description>Here you can insert a description for the Airport object.</description>
+            <description>Eleftherios Venizelos is the largest international airport in Greece.</description>
             <TimeStamp id="8">
-                <when>2024-01-15 16:56:52.979025</when>
+                <when>2024-01-15 17:54:53.527585</when>
             </TimeStamp>
             <styleUrl>#4</styleUrl>
             <Point id="2">

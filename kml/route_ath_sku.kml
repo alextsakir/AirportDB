@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="1">
+        <Style id="6">
+            <IconStyle id="8">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="9">
+                    <href>http://maps.google.com/mapfiles/kml/shapes/airports.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="7">
+                <color>ff00ffff</color>
+                <colorMode>normal</colorMode>
+                <scale>1.5</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="11">
+            <IconStyle id="13">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="14">
+                    <href>http://maps.google.com/mapfiles/kml/shapes/airports.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="12">
+                <color>ff00ffff</color>
+                <colorMode>normal</colorMode>
+                <scale>1.5</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="19">
+            <LineStyle id="20">
+                <color>ff00ff00</color>
+                <colorMode>normal</colorMode>
+            </LineStyle>
+        </Style>
+        <name>route_ath_sku</name>
+        <Placemark id="3">
+            <name>Eleftherios Venizelos</name>
+            <description>Eleftherios Venizelos is the largest international airport in Greece.</description>
+            <TimeStamp id="10">
+                <when>2024-01-15 18:04:41.138236</when>
+            </TimeStamp>
+            <styleUrl>#6</styleUrl>
+            <Point id="2">
+                <coordinates>23.945448,37.936402,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="5">
+            <name>Skyros Island National Airport</name>
+            <description>Skyros is the southernmost island of the Sporades, an archipelago in the Aegean Sea.</description>
+            <TimeStamp id="15">
+                <when>2024-01-15 18:04:41.138236</when>
+            </TimeStamp>
+            <styleUrl>#11</styleUrl>
+            <Point id="4">
+                <coordinates>24.487485,38.968313,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="17">
+            <name>ath_sku</name>
+            <TimeStamp id="18">
+                <when>2024-01-15 18:04:41.138236</when>
+            </TimeStamp>
+            <styleUrl>#19</styleUrl>
+            <LineString id="16">
+                <coordinates>23.945448,37.936402,0.0 24.487485,38.968313,0.0</coordinates>
+            </LineString>
+        </Placemark>
+    </Document>
+</kml>
