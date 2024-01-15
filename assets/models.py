@@ -21,6 +21,7 @@ from collections.abc import Iterable, Sized
 from enum import Enum, unique
 from functools import total_ordering as __total_order
 from math import sin, cos, sqrt, asin, radians, degrees, atan
+from pathlib import Path
 from random import choice as _ch, randint as _rand
 from sys import version_info, stderr as standard_error
 from typing import (NoReturn, Self, overload, Union, Iterator, Optional,
@@ -28,6 +29,8 @@ from typing import (NoReturn, Self, overload, Union, Iterator, Optional,
 
 if not version_info >= (3, 11):
     print(f"INCOMPATIBLE VERSION {version_info}, PLEASE USE PYTHON 3.11 OR HIGHER.")
+
+import simplekml
 
 from assets.constants import *
 
@@ -473,6 +476,7 @@ class Coordinates(_CompleteCheck, Sized, Iterable[Coordinate]):
 
     __slots__: tuple[str] = "lat", "long", "label"
 
+    KML_PATH: Final[str] = PROJECT + "\\kml"
     _DIMENSION: Final[int] = 2
 
     @overload
@@ -633,6 +637,37 @@ class Coordinates(_CompleteCheck, Sized, Iterable[Coordinate]):
         for _point in _pts:
             _positions[_lat.index(_point)][_long.index(_point)] = _point
         return _positions, _min_lat, _min_long, _max_lat, _max_long
+
+    # =================================================================================================================
+
+    @property
+    def kml_style(self) -> simplekml.Style:
+        """
+        :return: KML Style
+
+        *Created on 15 Jan 2023.*
+        """
+        _style = simplekml.Style()
+        _style.labelstyle.color = simplekml.Color.yellow
+        _style.labelstyle.scale = 1.5
+        _style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shapes/airports.png"
+        return _style
+
+    def kml(self) -> NoReturn:
+        """
+        Writes object label and coordinates to a Keyhole Markup Language file that can be opened at Google Earth,
+        stores at the directory specified at class variable KML_PATH.
+        :return: None
+
+        *Created on 15 Jan 2023.*
+        """
+        _kml_data = simplekml.Kml()
+        _kml_data.document.name = self.__class__.__name__
+        _point: simplekml.Point = _kml_data.newpoint(name=self.label, coords=[(float(self.lat), float(self.long))])
+        _point.style = self.kml_style
+        Path(f"{self.KML_PATH}").mkdir(parents=True, exist_ok=True)
+        _kml_data.save(f"{self.KML_PATH}\\{self.label.lower()}.kml")
+        return
 
     # =================================================================================================================
 
@@ -1079,10 +1114,53 @@ class Airport(_DatabaseRecord):
     def local_time(self) -> str:
         return _dt.now(self.timezone).strftime('%a %d %b %Y, %H:%M')
 
+    def kml(self) -> NoReturn:
+        """
+        Writes object name, description and coordinates to a Keyhole Markup Language file that can be opened
+        at Google Earth, stores at the directory specified at Coordinates class variable KML_PATH.
+        A local timestamp is also included.
+        :return: None
+
+        *Created on 15 Jan 2023.*
+        """
+        _kml_data = simplekml.Kml()
+        _kml_data.document.name = self.__class__.__name__
+        _point: simplekml.Point = _kml_data.newpoint(name=self.name)
+        _point.coords = [(float(self.location.lat), float(self.location.long))]
+        if self.description is not None:
+            _point.description = self.description
+        _point.style = self.location.kml_style
+        _point.timestamp.when = _dt.now()
+        Path(f"{self.location.KML_PATH}").mkdir(parents=True, exist_ok=True)
+        _kml_data.save(f"{self.location.KML_PATH}\\{self.iata.lower()}.kml")
+        return
+
+    def kml_route(self, other: Self) -> NoReturn:
+        """
+        Accepts another Airport object and creates a KML path (line string) between them.
+        Writes object name, description and coordinates to a Keyhole Markup Language file that can be opened
+        at Google Earth, stores at the directory specified at Coordinates class variable KML_PATH.
+        :return: None
+
+        *Created on 15 Jan 2023.*
+        """
+        _kml_data = simplekml.Kml()
+        _kml_data.document.name = self.__class__.__name__
+        _doc_name: str = (self.iata + "_" + other.iata).lower()
+        _line: simplekml.LineString = _kml_data.newlinestring(name=_doc_name)
+        _line.coords = [(float(self.location.lat), float(self.location.long)),
+                        (float(other.location.lat), float(other.location.long))]
+        _line.timestamp.when = _dt.now()
+        _line.style.linestyle.color = simplekml.Color.lime
+        Path(f"{self.location.KML_PATH}").mkdir(parents=True, exist_ok=True)
+        _kml_data.save(f"{self.location.KML_PATH}\\{_doc_name}.kml")
+        return
+
     def draw(self, other: Self) -> str:
         """
         Returns a small map with the relative position of the given Airport objects.
         The intersection of **Equator** and **Prime Meridian** will be included as a reference point.
+        :return: None
 
         *Created on 11 Nov 2023.*
         """

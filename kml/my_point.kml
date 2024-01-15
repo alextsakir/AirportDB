@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="1">
+        <Style id="4">
+            <IconStyle id="6">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="7">
+                    <href>http://maps.google.com/mapfiles/kml/shapes/airports.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="5">
+                <color>ff00ffff</color>
+                <colorMode>normal</colorMode>
+                <scale>1.5</scale>
+            </LabelStyle>
+        </Style>
+        <name>Coordinates</name>
+        <Placemark id="3">
+            <name>my_point</name>
+            <styleUrl>#4</styleUrl>
+            <Point id="2">
+                <coordinates>20.0,42.0,0.0</coordinates>
+            </Point>
+        </Placemark>
+    </Document>
+</kml>

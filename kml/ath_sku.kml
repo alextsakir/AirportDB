@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="1">
+        <Style id="5">
+            <LineStyle id="6">
+                <color>ff00ff00</color>
+                <colorMode>normal</colorMode>
+            </LineStyle>
+        </Style>
+        <name>Airport</name>
+        <Placemark id="3">
+            <name>ath_sku</name>
+            <TimeStamp id="4">
+                <when>2024-01-15 16:08:00.558042</when>
+            </TimeStamp>
+            <styleUrl>#5</styleUrl>
+            <LineString id="2">
+                <coordinates>37.936402,23.945448,0.0 38.968313,24.487485,0.0</coordinates>
+            </LineString>
+        </Placemark>
+    </Document>
+</kml>
