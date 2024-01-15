@@ -118,3 +118,10 @@ Download here: https://pypi.org/project/flet/
 
 PIP instruction: `pip install flet`
 
+#### simplekml
+
+Package website: https://simplekml.readthedocs.io/en/latest/index.html
+
+Download here: https://pypi.org/project/simplekml/
+
+Pip instruction: `pip install simplekml`
