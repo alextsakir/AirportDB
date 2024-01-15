@@ -663,8 +663,8 @@ class Coordinates(_CompleteCheck, Sized, Iterable[Coordinate]):
         """
         _kml_data = simplekml.Kml()
         _kml_data.document.name = self.__class__.__name__
-        _point: simplekml.Point = _kml_data.newpoint(name=self.label, coords=[(float(self.lat), float(self.long))])
-        _point.style = self.kml_style
+        _point: simplekml.Point = _kml_data.newpoint(name=self.label, coords=[(float(self.long), float(self.lat))])
+        _point.style = self.kml_style  # NOTE ---------------------------------------- longitude, latitude and altitude
         Path(f"{self.KML_PATH}").mkdir(parents=True, exist_ok=True)
         _kml_data.save(f"{self.KML_PATH}\\{self.label.lower()}.kml")
         return
@@ -1126,7 +1126,7 @@ class Airport(_DatabaseRecord):
         _kml_data = simplekml.Kml()
         _kml_data.document.name = self.__class__.__name__
         _point: simplekml.Point = _kml_data.newpoint(name=self.name)
-        _point.coords = [(float(self.location.lat), float(self.location.long))]
+        _point.coords = [(float(self.location.long), float(self.location.lat))]  # NOTE - longitude, latitude, altitude
         if self.description is not None:
             _point.description = self.description
         _point.style = self.location.kml_style
@@ -1148,9 +1148,9 @@ class Airport(_DatabaseRecord):
         _kml_data.document.name = self.__class__.__name__
         _doc_name: str = (self.iata + "_" + other.iata).lower()
         _line: simplekml.LineString = _kml_data.newlinestring(name=_doc_name)
-        _line.coords = [(float(self.location.lat), float(self.location.long)),
-                        (float(other.location.lat), float(other.location.long))]
-        _line.timestamp.when = _dt.now()
+        _line.coords = [(float(self.location.long), float(self.location.lat)),
+                        (float(other.location.long), float(other.location.lat))]
+        _line.timestamp.when = _dt.now()  # NOTE ------------------------------------- longitude, latitude and altitude
         _line.style.linestyle.color = simplekml.Color.lime
         Path(f"{self.location.KML_PATH}").mkdir(parents=True, exist_ok=True)
         _kml_data.save(f"{self.location.KML_PATH}\\{_doc_name}.kml")

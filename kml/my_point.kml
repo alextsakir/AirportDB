@@ -21,7 +21,7 @@
             <name>my_point</name>
             <styleUrl>#4</styleUrl>
             <Point id="2">
-                <coordinates>20.0,42.0,0.0</coordinates>
+                <coordinates>42.0,20.0,0.0</coordinates>
             </Point>
         </Placemark>
     </Document>

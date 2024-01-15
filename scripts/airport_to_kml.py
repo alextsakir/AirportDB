@@ -3,6 +3,8 @@ This script shows examples of how to export Coordinate or Airport objects to an 
 Method kml can be used for both classes.
 In addition, Airport.kml_route() method can be called with a second Airport as parameter to save a path between them.
 
+After creating the KML files, you can go to kml folder and open them with Google Earth to see points, airports
+and routes on map.
 """
 
 from assets import Airport, Coordinates, database
